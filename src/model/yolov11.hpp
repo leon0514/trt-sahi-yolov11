@@ -20,6 +20,10 @@ struct Box
             bottom(bottom),
             confidence(confidence),
             class_label(class_label) {}
+    void dump()
+    {
+        std::cout << "left : " << left << ", top : " << top << " , right : " << right << ", bottom : " << bottom << std::endl;
+    }
 };
 
 using BoxArray = std::vector<Box>;

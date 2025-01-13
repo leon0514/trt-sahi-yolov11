@@ -31,8 +31,8 @@ static __host__ __device__ void affine_project(float *matrix, float x, float y, 
 
 static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_classes,
                                               int output_cdim, float confidence_threshold,
-                                              float *invert_affine_matrix, float *parray,
-                                              int MAX_IMAGE_BOXES) 
+                                              float *invert_affine_matrix, float *parray, int *box_count,
+                                              int MAX_IMAGE_BOXES, int start_x, int start_y) 
 {
     int position = blockDim.x * blockIdx.x + threadIdx.x;
     if (position >= num_bboxes) return;
@@ -51,7 +51,7 @@ static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_
     }
     if (confidence < confidence_threshold) return;
 
-    int index = atomicAdd(parray, 1);
+    int index = atomicAdd(box_count, 1);
     if (index >= MAX_IMAGE_BOXES) return;
 
     float cx = *pitem++;
@@ -65,11 +65,11 @@ static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_
     affine_project(invert_affine_matrix, left, top, &left, &top);
     affine_project(invert_affine_matrix, right, bottom, &right, &bottom);
 
-    float *pout_item = parray + 1 + index * NUM_BOX_ELEMENT;
-    *pout_item++ = left;
-    *pout_item++ = top;
-    *pout_item++ = right;
-    *pout_item++ = bottom;
+    float *pout_item = parray + index * NUM_BOX_ELEMENT;
+    *pout_item++ = left + start_x;
+    *pout_item++ = top + start_y;
+    *pout_item++ = right + start_x;
+    *pout_item++ = bottom + start_y;
     *pout_item++ = confidence;
     *pout_item++ = label;
     *pout_item++ = 1;  // 1 = keep, 0 = ignore
@@ -78,7 +78,7 @@ static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_
 
 
 static __device__ float box_iou(float aleft, float atop, float aright, float abottom, float bleft,
-                                float btop, float bright, float bbottom) \
+                                float btop, float bright, float bbottom)
 {
     float cleft = max(aleft, bleft);
     float ctop = max(atop, btop);
@@ -94,17 +94,18 @@ static __device__ float box_iou(float aleft, float atop, float aright, float abo
 }
 
 
-static __global__ void fast_nms_kernel(float *bboxes, int MAX_IMAGE_BOXES, float threshold) 
+static __global__ void fast_nms_kernel(float *bboxes, int* box_count, int MAX_IMAGE_BOXES, float threshold) 
 {
     int position = (blockDim.x * blockIdx.x + threadIdx.x);
-    int count = min((int)*bboxes, MAX_IMAGE_BOXES);
+    // int count = min((int)*box_count, MAX_IMAGE_BOXES);
+    int count = MAX_IMAGE_BOXES;
     if (position >= count) return;
 
     // left, top, right, bottom, confidence, class, keepflag
-    float *pcurrent = bboxes + 1 + position * NUM_BOX_ELEMENT;
+    float *pcurrent = bboxes + position * NUM_BOX_ELEMENT;
     for (int i = 0; i < count; ++i) 
     {
-        float *pitem = bboxes + 1 + i * NUM_BOX_ELEMENT;
+        float *pitem = bboxes + i * NUM_BOX_ELEMENT;
         if (i == position || pcurrent[5] != pitem[5]) continue;
 
         if (pitem[4] >= pcurrent[4]) 
@@ -125,19 +126,26 @@ static __global__ void fast_nms_kernel(float *bboxes, int MAX_IMAGE_BOXES, float
 
 static void decode_kernel_invoker(float *predict, int num_bboxes, int num_classes, int output_cdim,
                                   float confidence_threshold, float nms_threshold,
-                                  float *invert_affine_matrix, float *parray, int MAX_IMAGE_BOXES,
-                                cudaStream_t stream) 
+                                  float *invert_affine_matrix, float *parray, int* box_count, int MAX_IMAGE_BOXES,
+                                  int start_x, int start_y, cudaStream_t stream) 
 {
     auto grid = grid_dims(num_bboxes);
     auto block = block_dims(num_bboxes);
 
     checkKernel(decode_kernel_v8<<<grid, block, 0, stream>>>(
             predict, num_bboxes, num_classes, output_cdim, confidence_threshold, invert_affine_matrix,
-            parray, MAX_IMAGE_BOXES));
+            parray, box_count, MAX_IMAGE_BOXES, start_x, start_y));
 
-    grid = grid_dims(MAX_IMAGE_BOXES);
-    block = block_dims(MAX_IMAGE_BOXES);
-    checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, MAX_IMAGE_BOXES, nms_threshold));
+    // grid = grid_dims(MAX_IMAGE_BOXES);
+    // block = block_dims(MAX_IMAGE_BOXES);
+    // checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, MAX_IMAGE_BOXES, nms_threshold));
+}
+
+static void fast_nms_kernel_invoker(float *parray, int* box_count, int MAX_IMAGE_BOXES, float nms_threshold, cudaStream_t stream)
+{
+    auto grid = grid_dims(MAX_IMAGE_BOXES);
+    auto block = block_dims(MAX_IMAGE_BOXES);
+    checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, MAX_IMAGE_BOXES, nms_threshold));
 }
 
 class Yolov11ModelImpl : public Infer 
@@ -148,6 +156,8 @@ public:
 
     std::shared_ptr<TensorRT::Engine> trt_;
     std::string engine_file_;
+
+    tensor::Memory<int> box_count_;
 
     tensor::Memory<float> affine_matrix_;
     tensor::Memory<float>  input_buffer_, bbox_predict_, output_boxarray_;
@@ -170,11 +180,14 @@ public:
         size_t input_numel = network_input_width_ * network_input_height_ * 3;
         input_buffer_.gpu(batch_size * input_numel);
         bbox_predict_.gpu(batch_size * bbox_head_dims_[1] * bbox_head_dims_[2]);
-        output_boxarray_.gpu(batch_size * (32 + MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
-        output_boxarray_.cpu(batch_size * (32 + MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
+        output_boxarray_.gpu(batch_size * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
+        output_boxarray_.cpu(batch_size * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
 
         affine_matrix_.gpu(6);
         affine_matrix_.cpu(6);
+
+        box_count_.gpu(1);
+        box_count_.cpu(1);
     }
 
     void preprocess(int ibatch, affine::LetterBoxMatrix &affine, void *stream = nullptr)
@@ -187,7 +200,7 @@ public:
         size_t size_image = slice_->slice_width_ * slice_->slice_height_ * 3;
 
         float *affine_matrix_device = affine_matrix_.gpu();
-        uint8_t *image_device = slice_->output_images_.gpu() + ibatch * input_numel;
+        uint8_t *image_device = slice_->output_images_.gpu() + ibatch * size_image;
 
         float *affine_matrix_host = affine_matrix_.cpu();
 
@@ -227,7 +240,7 @@ public:
 
     virtual BoxArray forward(const tensor::Image &image, void *stream = nullptr) override 
     {
-        slice_->slice(image, 1568/2, 1069/2, 0.1, 0.1, stream);
+        slice_->slice(image, image.width/2, image.height/2, 0.5, 0.5, stream);
         return forwards(stream);
     }
 
@@ -279,38 +292,43 @@ public:
             printf("Failed to tensorRT forward.");
             return {};
         }
-
-        for (int ib = 0; ib < num_image; ++ib) 
-        {
-            float *boxarray_device =
-                output_boxarray_.gpu() + ib * (32 + MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
-            float *affine_matrix_device = affine_matrix_.gpu();
-            float *image_based_bbox_output =
-                bbox_output_device + ib * (bbox_head_dims_[1] * bbox_head_dims_[2]);
-            checkRuntime(cudaMemsetAsync(boxarray_device, 0, sizeof(int), stream_));
-            decode_kernel_invoker(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
-                                    bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
-                                    affine_matrix_device, boxarray_device, MAX_IMAGE_BOXES, stream_);
-        }
-        checkRuntime(cudaMemcpyAsync(output_boxarray_.cpu(), output_boxarray_.gpu(),
-                                    output_boxarray_.gpu_bytes(), cudaMemcpyDeviceToHost, stream_));
-        checkRuntime(cudaStreamSynchronize(stream_));
-
-        BoxArray result;
-        int imemory = 0;
+        int* box_count = box_count_.gpu();
+        checkRuntime(cudaMemsetAsync(box_count, 0, sizeof(int), stream_));
         for (int ib = 0; ib < num_image; ++ib) 
         {
             int start_x = slice_->slice_position_.cpu()[ib*2];
             int start_y = slice_->slice_position_.cpu()[ib*2+1];
-            float *parray = output_boxarray_.cpu() + ib * (32 + MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
-            int count = min(MAX_IMAGE_BOXES, (int)*parray);
+            float *boxarray_device =
+                output_boxarray_.gpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
+            float *affine_matrix_device = affine_matrix_.gpu();
+            float *image_based_bbox_output =
+                bbox_output_device + ib * (bbox_head_dims_[1] * bbox_head_dims_[2]);
+            decode_kernel_invoker(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
+                                    bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
+                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+        }
+        float *boxarray_device =  output_boxarray_.gpu();
+        fast_nms_kernel_invoker(boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, nms_threshold_, stream_);
+        checkRuntime(cudaMemcpyAsync(output_boxarray_.cpu(), output_boxarray_.gpu(),
+                                    output_boxarray_.gpu_bytes(), cudaMemcpyDeviceToHost, stream_));
+        checkRuntime(cudaMemcpyAsync(box_count_.cpu(), box_count_.gpu(),
+                                    box_count_.gpu_bytes(), cudaMemcpyDeviceToHost, stream_));
+        checkRuntime(cudaStreamSynchronize(stream_));
+
+        BoxArray result;
+        // int imemory = 0;
+        for (int ib = 0; ib < num_image; ++ib) 
+        {
+            
+            float *parray = output_boxarray_.cpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
+            int count = min(MAX_IMAGE_BOXES, *(box_count_.cpu()));
             for (int i = 0; i < count; ++i) 
             {
-                float *pbox = parray + 1 + i * NUM_BOX_ELEMENT;
+                float *pbox = parray + i * NUM_BOX_ELEMENT;
                 int label = pbox[5];
                 int keepflag = pbox[6];
                 if (keepflag == 1) {
-                    Box result_object_box(pbox[0] + start_x, pbox[1] + start_y, pbox[2] + start_x, pbox[3] + start_y, pbox[4], label);
+                    Box result_object_box(pbox[0], pbox[1], pbox[2], pbox[3], pbox[4], label);
                     result.emplace_back(result_object_box);
                 }
             }
