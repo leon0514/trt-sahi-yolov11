@@ -79,7 +79,7 @@ void testInfer()
     // cv::Mat image = cv::imread("6.jpg");
     auto yolo = yolov11::load("yolov8n.transd.engine");
     if (yolo == nullptr) return;
-    auto objs = yolo->forward(tensor::cvimg(image));
+    auto objs = yolo->forwardAuto(tensor::cvimg(image));
     printf("objs size : %d\n", objs.size());
     for (auto &obj : objs) 
     {

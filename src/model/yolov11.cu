@@ -238,9 +238,15 @@ public:
     }
 
 
-    virtual BoxArray forward(const tensor::Image &image, void *stream = nullptr) override 
+    virtual BoxArray forward(const tensor::Image &image, int slice_width, int slice_height, float overlap_width_ratio, int overlap_height_ratio, void *stream = nullptr) override 
     {
-        slice_->slice(image, image.width/2, image.height/2, 0.5, 0.5, stream);
+        slice_->slice(image, slice_width, slice_height, overlap_width_ratio, overlap_height_ratio, stream);
+        return forwards(stream);
+    }
+
+    virtual BoxArray forwardAuto(const tensor::Image &image, void *stream = nullptr) override 
+    {
+        slice_->autoSlice(image, slice_width, slice_height, overlap_width_ratio, overlap_height_ratio, stream);
         return forwards(stream);
     }
 

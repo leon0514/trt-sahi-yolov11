@@ -31,7 +31,8 @@ using BoxArray = std::vector<Box>;
 
 class Infer {
 public:
-    virtual BoxArray forward(const tensor::Image &image, void *stream = nullptr) = 0;
+    virtual BoxArray forward(const tensor::Image &image, int slice_width, int slice_height, float overlap_width_ratio, int overlap_height_ratio, void *stream = nullptr) = 0;
+    virtual BoxArray forwardAuto(const tensor::Image &image, void *stream = nullptr) = 0;
     virtual BoxArray forwards(void *stream = nullptr) = 0;
 };
 
