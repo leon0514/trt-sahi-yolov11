@@ -54,9 +54,12 @@ Save result to Yolo-result.jpg, 39 objects
    <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/no_sliced.jpg?raw=true" width="45%"/>
 </div>
 
+## TensoRT8 API支持
+在`Makefile`中通过 `TRT_VERSION`来控制编译哪个版本的tensorrt封装文件
+
 ## TODO
 
 - [x] **NMS 实现**：完成 所有子图的 NMS 处理逻辑，去除冗余框。
-- [ ] **Tensorrt8支持**：目前是使用的tensorrt10的API
+- [x] **Tensorrt8支持**：目前是使用的tensorrt10的API
 - [ ] **更多模型支持**：添加对其他 YOLO 模型版本的支持。目前支持YOLOv11/yolov8
 

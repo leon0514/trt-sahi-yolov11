@@ -29,7 +29,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace TensorRT {
+namespace TensorRT10 {
 
 enum class DType : int { FLOAT = 0, HALF = 1, INT8 = 2, INT32 = 3, BOOL = 4, UINT8 = 5, FP8 = 6, BF16 = 7, INT64 = 8, INT4 = 9, NONE=-1 };
 

@@ -9,7 +9,7 @@ cuda_arch := 8.6
 nvcc      := $(cuda_home)/bin/nvcc -ccbin=$(cc)
 
 
-project_include_path := src src/common src/depth
+project_include_path := src
 opencv_include_path  := /workspace/__install/opencv490/include/opencv4
 trt_include_path     := /usr/include/x86_64-linux-gnu/
 cuda_include_path    := $(cuda_home)/include
@@ -66,6 +66,19 @@ cu_objs := $(cu_srcs:.cu=.cu.o)
 cu_objs := $(cu_objs:$(srcdir)/%=$(objdir)/%)
 cu_mk   := $(cu_objs:.cu.o=.cu.mk)
 
+TRT_VERSION := 8
+
+# 根据 TRT_VERSION 设置不同的编译选项
+ifeq ($(TRT_VERSION), 8)
+    CXXFLAGS = -DTRT8
+    cpp_srcs := $(filter-out src/common/tensorrt.cpp, $(cpp_srcs))
+    cpp_objs := $(filter-out objs/common/tensorrt.cpp.o, $(cpp_objs))
+else
+    CXXFLAGS = -DTRT10
+    cpp_srcs := $(filter-out src/common/tensorrt8.cpp, $(cpp_srcs))
+    cpp_objs := $(filter-out objs/common/tensorrt8.cpp.o, $(cpp_objs))
+endif
+
 pro_cpp_objs := $(filter-out objs/interface.cpp.o, $(cpp_objs))
 
 ifneq ($(MAKECMDGOALS), clean)
@@ -99,12 +112,12 @@ $(workdir)/pro : $(pro_cpp_objs) $(cu_objs)
 $(objdir)/%.cpp.o : $(srcdir)/%.cpp
 	@echo Compile CXX $<
 	@mkdir -p $(dir $@)
-	@$(cc) -c $< -o $@ $(cpp_compile_flags)
+	@$(cc) $(CXXFLAGS) -c $< -o $@ $(cpp_compile_flags)
 
 $(objdir)/%.cu.o : $(srcdir)/%.cu
 	@echo Compile CUDA $<
 	@mkdir -p $(dir $@)
-	@$(nvcc) -c $< -o $@ $(cu_compile_flags)
+	@$(nvcc) $(CXXFLAGS) -c $< -o $@ $(cu_compile_flags)
 
 $(objdir)/%.cpp.mk : $(srcdir)/%.cpp
 	@echo Compile depends C++ $<

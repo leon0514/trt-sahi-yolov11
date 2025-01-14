@@ -2,9 +2,15 @@
 #include <vector>
 #include <memory>
 #include "slice/slice.hpp"
-#include "common/tensorrt.hpp"
 #include "model/affine.hpp"
 #include "common/check.hpp"
+#ifdef TRT10
+#include "common/tensorrt.hpp"
+namespace TensorRT = TensorRT10;
+#else
+#include "common/tensorrt8.hpp"
+namespace TensorRT = TensorRT8;
+#endif
 
 #define GPU_BLOCK_THREADS 512
 
@@ -153,7 +159,6 @@ class Yolov11ModelImpl : public Infer
 public:
     // for sahi crop image
     std::shared_ptr<slice::SliceImage> slice_;
-
     std::shared_ptr<TensorRT::Engine> trt_;
     std::string engine_file_;
 
@@ -290,14 +295,26 @@ public:
 
         float *bbox_output_device = bbox_predict_.gpu();
         std::vector<void *> bindings{input_buffer_.gpu(), bbox_output_device};
+        #ifdef TRT10
+        std::string input_name  = trt_->context_->engine_->getIOTensorName(0);
+        std::string output_name = trt_->context_->engine_->getIOTensorName(1);
+        std::string input_name = trt_->
         if (!trt_->forward(std::unordered_map<std::string, const void *>{
-                { "images", input_buffer_.gpu() }, 
-                { "output0", bbox_predict_.gpu() }
+                { input_name, input_buffer_.gpu() }, 
+                { output_name, bbox_predict_.gpu() }
             }, stream_))
         {
             printf("Failed to tensorRT forward.");
             return {};
         }
+        #else
+        if (!trt_->forward(bindings, stream)) 
+        {
+            printf("Failed to tensorRT forward.");
+            return {};
+        }
+        #endif
+
         int* box_count = box_count_.gpu();
         checkRuntime(cudaMemsetAsync(box_count, 0, sizeof(int), stream_));
         for (int ib = 0; ib < num_image; ++ib) 

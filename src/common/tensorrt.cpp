@@ -37,7 +37,7 @@
 #include "NvInferRuntime.h"
 #include "check.hpp"
 
-namespace TensorRT {
+namespace TensorRT10 {
 
 static class Logger : public nvinfer1::ILogger {
  public:
