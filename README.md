@@ -13,6 +13,37 @@
    使用 TensorRT 10 进行深度学习模型推理加速。
 
 
+## 使用
+```C++
+cv::Mat image = cv::imread("inference/persons.jpg");
+// cv::Mat image = cv::imread("6.jpg");
+auto yolo = yolov11::load("yolov8n.transd.engine");
+if (yolo == nullptr) return;
+auto objs = yolo->forwardAuto(tensor::cvimg(image));
+printf("objs size : %d\n", objs.size());
+// OUTPUT
+/*
+------------------------------------------------------
+TensorRT-Engine 🌱 is Dynamic Shape model
+Inputs: 1
+	0.images : {-1 x 3 x 640 x 640} [float32]
+Outputs: 1
+	0.output0 : {-1 x 8400 x 84} [float32]
+------------------------------------------------------
+------------------------------------------------------
+CUDA SAHI CROP IMAGE ✂️ 
+Slice width                : 784
+Slice Height               : 1068
+Overlap width  ratio       : 0.800000
+Overlap height ratio       : 0.800000
+Number of horizontal cuts  : 6
+Number of vertical cuts    : 1
+------------------------------------------------------
+objs size : 39
+Save result to Yolo-result.jpg, 39 objects
+*/
+```
+
 ## TODO
 
 - [x] **NMS 实现**：完成 所有子图的 NMS 处理逻辑，去除冗余框。
