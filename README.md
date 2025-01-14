@@ -49,9 +49,9 @@ Save result to Yolo-result.jpg, 39 objects
 ```
 
 ## 对比
-<center class="half">
-<img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/sliced.jpg" width=300/>
-<img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/no_sliced.jpg" width=300/>
+<center class="center">
+<img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/sliced.jpg" width="45%"/>
+<img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/no_sliced.jpg" width="45%"/>
 </center>
 
 ## TODO
