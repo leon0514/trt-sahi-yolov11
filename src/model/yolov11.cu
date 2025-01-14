@@ -246,7 +246,7 @@ public:
 
     virtual BoxArray forwardAuto(const tensor::Image &image, void *stream = nullptr) override 
     {
-        slice_->autoSlice(image, slice_width, slice_height, overlap_width_ratio, overlap_height_ratio, stream);
+        slice_->autoSlice(image, stream);
         return forwards(stream);
     }
 
