@@ -250,11 +250,12 @@ void SliceImage::slice(
     slice_num_v_ = calculateNumCuts(height, slice_height, overlap_height_ratio);
     printf("------------------------------------------------------\n"
             "CUDA SAHI CROP IMAGE ✂️\n"
-            "Slice width  : %d\n"
-            "Slice Height : %d\n"
-            "Overlap width  ratio : %f\n"
+            "Slice width                : %d\n"
+            "Slice Height               : %d\n"
+            "Overlap width  ratio       : %f\n"
+            "Overlap height ratio       : %f\n"
             "Number of horizontal cuts  : %d\n"
-            "Number of vertical cuts : %d\n"
+            "Number of vertical cuts    : %d\n"
             "------------------------------------------------------\n", 
             slice_width_, slice_height_, overlap_width_ratio, overlap_height_ratio, slice_num_h_, slice_num_v_);
     // printf("%d,%d\n", slice_num_h_, slice_num_v_);
