@@ -13,6 +13,10 @@
    使用 TensorRT 10 进行深度学习模型推理加速。
 
 
+## 注意事项
+1. 模型需要是动态batch的
+2. 如果模型切割后的数量大于batch的最大数量会我无法推理
+
 ## 使用
 ```C++
 cv::Mat image = cv::imread("inference/persons.jpg");
