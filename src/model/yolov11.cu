@@ -249,7 +249,7 @@ public:
         return forwards(stream);
     }
 
-    virtual BoxArray forwardAuto(const tensor::Image &image, void *stream = nullptr) override 
+    virtual BoxArray forward(const tensor::Image &image, void *stream = nullptr) override 
     {
         slice_->autoSlice(image, stream);
         return forwards(stream);
