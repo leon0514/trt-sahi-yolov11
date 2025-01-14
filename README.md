@@ -49,8 +49,10 @@ Save result to Yolo-result.jpg, 39 objects
 ```
 
 ## 对比
-![sliced](https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/sliced.jpg)
-![no_sliced](https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/no_sliced.jpg)
+<center class="half">
+<img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/sliced.jpg" width=00/>
+<img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/no_sliced.jpg" width=200/>
+</center>
 ## TODO
 
 - [x] **NMS 实现**：完成 所有子图的 NMS 处理逻辑，去除冗余框。
