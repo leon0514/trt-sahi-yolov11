@@ -296,12 +296,9 @@ public:
         float *bbox_output_device = bbox_predict_.gpu();
         std::vector<void *> bindings{input_buffer_.gpu(), bbox_output_device};
         #ifdef TRT10
-        std::string input_name  = trt_->context_->engine_->getIOTensorName(0);
-        std::string output_name = trt_->context_->engine_->getIOTensorName(1);
-        std::string input_name = trt_->
         if (!trt_->forward(std::unordered_map<std::string, const void *>{
-                { input_name, input_buffer_.gpu() }, 
-                { output_name, bbox_predict_.gpu() }
+                { "images", input_buffer_.gpu() }, 
+                { "output0", bbox_predict_.gpu() }
             }, stream_))
         {
             printf("Failed to tensorRT forward.");
