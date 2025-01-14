@@ -259,7 +259,7 @@ void SliceImage::slice(
             "------------------------------------------------------\n", 
             slice_width_, slice_height_, overlap_width_ratio, overlap_height_ratio, slice_num_h_, slice_num_v_);
     // printf("%d,%d\n", slice_num_h_, slice_num_v_);
-    int slice_num            = slice_num_h_ * slice_num_h_;
+    int slice_num            = slice_num_h_ * slice_num_v_;
     int overlap_width_pixel  = slice_width  * overlap_width_ratio;
     int overlap_height_pixel = slice_height * overlap_height_ratio;
 
@@ -269,7 +269,7 @@ void SliceImage::slice(
     input_image_.gpu(size_image);
     output_images_.gpu(slice_num * output_img_size);
     checkRuntime(cudaMemsetAsync(output_images_.gpu(), 114, output_images_.gpu_bytes(), stream_));
-    slice_position_.cpu(slice_num_h_ * slice_num_v_ * 2);
+    slice_position_.resize(slice_num * 2);
 
     checkRuntime(cudaMemcpyAsync(input_image_.gpu(), image.bgrptr, size_image, cudaMemcpyHostToDevice, stream_));
     // checkRuntime(cudaStreamSynchronize(stream_));
@@ -284,10 +284,8 @@ void SliceImage::slice(
         overlap_width_pixel, overlap_height_pixel, 
         stream);
 
-    checkRuntime(cudaStreamSynchronize(stream_));
+    // checkRuntime(cudaStreamSynchronize(stream_));
 
-
-    int* slice_position_ptr = slice_position_.cpu();
     for (int i = 0; i < slice_num_h_; i++)
     {
         int x = std::max(0, i * (slice_width - overlap_width_pixel));
@@ -295,8 +293,8 @@ void SliceImage::slice(
         {
             int y = std::max(0, j * (slice_height - overlap_height_pixel));
             int index = i * slice_num_v_ + j;
-            slice_position_ptr[index*2]   = x;
-            slice_position_ptr[index*2+1] = y;
+            slice_position_[index*2]   = x;
+            slice_position_[index*2+1] = y;
 
             // cv::Mat image = cv::Mat::zeros(slice_height, slice_width, CV_8UC3);
             // uint8_t* output_img_data = image.ptr<uint8_t>();

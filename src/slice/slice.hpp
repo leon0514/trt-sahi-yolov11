@@ -22,7 +22,7 @@ public:
     int slice_width_;
     int slice_height_;
 
-    tensor::Memory<int> slice_position_;
+    std::vector<int> slice_position_;
 
 public:
     void slice(

@@ -316,8 +316,8 @@ public:
         checkRuntime(cudaMemsetAsync(box_count, 0, sizeof(int), stream_));
         for (int ib = 0; ib < num_image; ++ib) 
         {
-            int start_x = slice_->slice_position_.cpu()[ib*2];
-            int start_y = slice_->slice_position_.cpu()[ib*2+1];
+            int start_x = slice_->slice_position_[ib*2];
+            int start_y = slice_->slice_position_[ib*2+1];
             float *boxarray_device =
                 output_boxarray_.gpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
             float *affine_matrix_device = affine_matrix_.gpu();
