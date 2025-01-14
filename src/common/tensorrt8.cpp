@@ -236,7 +236,8 @@ public:
 
     virtual void print() override 
     {
-        printf("Infer %p [%s]\n", this, has_dynamic_dim() ? "DynamicShape" : "StaticShape");
+        printf("------------------------------------------------------\n");
+        printf("Engine %p [%s]\n", this, has_dynamic_dim() ? "DynamicShape" : "StaticShape");
 
         int num_input = 0;
         int num_output = 0;
