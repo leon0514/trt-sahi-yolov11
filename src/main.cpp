@@ -106,11 +106,11 @@ void slicedInfer()
         std::tuple<int, int, int, int> curPos = pm.getCurrentPosition();
         int left, top, right, bottom;
         std::tie(left, top, right, bottom) = curPos;
-        cv::rectangle(image, cv::Point(left, top - 33),
+        cv::rectangle(image, cv::Point(left, top),
                     cv::Point(right, bottom), cv::Scalar(b, g, r), -1);
         cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
     }
-    printf("Save result to result.jpg, %d objects\n", (int)objs.size());
+    printf("Save result to result/sliced.jpg, %d objects\n", (int)objs.size());
     cv::imwrite("result/sliced.jpg", image);
 
 }
@@ -139,12 +139,12 @@ void noSlicedInfer()
         std::tuple<int, int, int, int> curPos = pm.getCurrentPosition();
         int left, top, right, bottom;
         std::tie(left, top, right, bottom) = curPos;
-        cv::rectangle(image, cv::Point(left, top - 33),
+        cv::rectangle(image, cv::Point(left, top),
                     cv::Point(right, bottom), cv::Scalar(b, g, r), -1);
         cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
         
     }
-    printf("Save result to result.jpg, %d objects\n", (int)objs.size());
+    printf("Save result to result/no_sliced.jpg, %d objects\n", (int)objs.size());
     cv::imwrite("result/no_sliced.jpg", image);
 
 }
