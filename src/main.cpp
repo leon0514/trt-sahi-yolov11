@@ -96,7 +96,9 @@ void slicedInfer()
         std::tie(b, g, r) = random_color(obj.class_label);
         cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom),
                     cv::Scalar(b, g, r), 5);
-                    
+    }
+    for (auto &obj : objs) 
+    {  
         auto name = cocolabels[obj.class_label];
         auto caption = cv::format("%s %.2f", name, obj.confidence);
 
@@ -130,7 +132,9 @@ void noSlicedInfer()
         std::tie(b, g, r) = random_color(obj.class_label);
         cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom),
                     cv::Scalar(b, g, r), 5);
-                    
+    }
+    for (auto &obj : objs) 
+    {               
         auto name = cocolabels[obj.class_label];
         auto caption = cv::format("%s %.2f", name, obj.confidence);
         std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
