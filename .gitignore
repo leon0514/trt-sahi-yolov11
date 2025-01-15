@@ -34,6 +34,7 @@
 
 
 workspace/pro
+workspace/result/*.jpg
 workspace/*.jpg
 !workspace/inference/*.jpg
 *.engine

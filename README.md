@@ -71,12 +71,20 @@ Save result to Yolo-result.jpg, 39 objects
 
 ## 对比
 <div align="center">
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/sliced.jpg?raw=true" width="45%"/>
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/workspace/result/no_sliced.jpg?raw=true" width="45%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced.jpg?raw=true" width="45%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/no_sliced.jpg?raw=true" width="45%"/>
 </div>
 
 ## TensoRT8 API支持
 在Makefile中通过 **TRT_VERSION** 来控制编译哪个版本的 **TensorRT** 封装文件
+
+## 优化文字显示
+目标检测模型识别到多个目标时，在图上显示文字可能会有重叠，导致类别置信度显示被遮挡。
+优化了目标文字显示，尽可能改善遮挡情况
+<div align="center">
+   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced_text.jpg?raw=true" width="45%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/no_sliced_text.jpg?raw=true" width="45%"/>
+</div>
 
 ## TODO
 - [x] **NMS 实现**：完成所有子图的 NMS 处理逻辑，去除冗余框。已完成
