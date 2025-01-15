@@ -45,6 +45,14 @@ std::tuple<uint8_t, uint8_t, uint8_t> random_color(int id)
     return hsv2bgr(h_plane, s_plane, 1);
 }
 
+static std::tuple<int, int, int> getFontSize(const std::string& text)
+{
+    int baseline = 0;
+    cv::Size textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 1.0, 2, &baseline);
+    std::cout << textSize << std::endl;
+    return std::make_tuple(textSize.width, textSize.height, baseline);
+}
+
 void slicedInfer()
 {
    static const char *cocolabels[] = {"person",        "bicycle",      "car",
@@ -81,6 +89,7 @@ void slicedInfer()
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image));
     printf("objs size : %d\n", objs.size());
+    PositionManager<int> pm(getFontSize);
     for (auto &obj : objs) 
     {
         // obj.dump();
@@ -91,11 +100,11 @@ void slicedInfer()
                     
         auto name = cocolabels[obj.class_label];
         auto caption = cv::format("%s %.2f", name, obj.confidence);
-        int width = cv::getTextSize(caption, 0, 1, 2, nullptr).width + 10;
-        // cv::rectangle(image, cv::Point(obj.left - 3, obj.top - 33),
-        //             cv::Point(obj.left + width, obj.top), cv::Scalar(b, g, r), -1);
-        // cv::putText(image, caption, cv::Point(obj.left, obj.top - 5), 0, 1, cv::Scalar::all(0), 2, 16);
-        
+
+        std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
+        int x, y;
+        std::tie(x, y) = pm.selectOptimalPosition(box, image.cols, image.rows, caption);
+        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
     }
     printf("Save result to result.jpg, %d objects\n", (int)objs.size());
     cv::imwrite("result/sliced.jpg", image);
@@ -138,6 +147,7 @@ void noSlicedInfer()
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image), image.cols, image.rows, 0.0f, 0.0f);
     printf("objs size : %d\n", objs.size());
+    PositionManager<int> pm(getFontSize);
     for (auto &obj : objs) 
     {
         // obj.dump();
@@ -148,10 +158,10 @@ void noSlicedInfer()
                     
         auto name = cocolabels[obj.class_label];
         auto caption = cv::format("%s %.2f", name, obj.confidence);
-        int width = cv::getTextSize(caption, 0, 1, 2, nullptr).width + 10;
-        // cv::rectangle(image, cv::Point(obj.left - 3, obj.top - 33),
-        //             cv::Point(obj.left + width, obj.top), cv::Scalar(b, g, r), -1);
-        // cv::putText(image, caption, cv::Point(obj.left, obj.top - 5), 0, 1, cv::Scalar::all(0), 2, 16);
+        std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
+        int x, y;
+        std::tie(x, y) = pm.selectOptimalPosition(box, image.cols, image.rows, caption);
+        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
         
     }
     printf("Save result to result.jpg, %d objects\n", (int)objs.size());

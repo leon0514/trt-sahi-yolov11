@@ -66,7 +66,7 @@ cu_objs := $(cu_srcs:.cu=.cu.o)
 cu_objs := $(cu_objs:$(srcdir)/%=$(objdir)/%)
 cu_mk   := $(cu_objs:.cu.o=.cu.mk)
 
-TRT_VERSION := 8
+TRT_VERSION := 10
 
 # 根据 TRT_VERSION 设置不同的编译选项
 ifeq ($(TRT_VERSION), 8)
