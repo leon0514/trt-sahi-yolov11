@@ -53,6 +53,7 @@ class PositionManager {
 private:
     std::vector<std::tuple<T, T, T, T>> markedPositions;
     std::function<std::tuple<int, int, int>(const std::string&)> getFontSizeFunc;
+    std::tuple<T, T, T, T> currentPosition;
 
 public:
     template <typename Func>
@@ -94,11 +95,16 @@ public:
             }
         }
         markedPositions.push_back(candidatePosition);
-
+        currentPosition = candidatePosition;
         T left, top, right, bottom;
         std::tie(left, top, right, bottom) = candidatePosition;
         std::tuple<T, T> result = std::make_tuple(left, top + textHeight);
         return result;
+    }
+
+    std::tuple<T, T, T, T> getCurrentPosition()
+    {
+        return currentPosition;
     }
 
     void clearMarkedPositions()

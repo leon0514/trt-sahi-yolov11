@@ -103,7 +103,12 @@ void slicedInfer()
         std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
         int x, y;
         std::tie(x, y) = pm.selectOptimalPosition(box, image.cols, image.rows, caption);
-        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar(b, g, r), 2, 16);
+        std::tuple<int, int, int, int> curPos = pm.getCurrentPosition();
+        int left, top, right, bottom;
+        std::tie(left, top, right, bottom) = curPos;
+        cv::rectangle(image, cv::Point(left, top - 33),
+                    cv::Point(right, bottom), cv::Scalar(b, g, r), -1);
+        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
     }
     printf("Save result to result.jpg, %d objects\n", (int)objs.size());
     cv::imwrite("result/sliced.jpg", image);
@@ -131,7 +136,12 @@ void noSlicedInfer()
         std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
         int x, y;
         std::tie(x, y) = pm.selectOptimalPosition(box, image.cols, image.rows, caption);
-        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar(b, g, r), 2, 16);
+        std::tuple<int, int, int, int> curPos = pm.getCurrentPosition();
+        int left, top, right, bottom;
+        std::tie(left, top, right, bottom) = curPos;
+        cv::rectangle(image, cv::Point(left, top - 33),
+                    cv::Point(right, bottom), cv::Scalar(b, g, r), -1);
+        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
         
     }
     printf("Save result to result.jpg, %d objects\n", (int)objs.size());
