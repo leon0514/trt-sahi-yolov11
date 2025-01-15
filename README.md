@@ -81,5 +81,6 @@ Save result to Yolo-result.jpg, 39 objects
 ## TODO
 - [x] **NMS 实现**：完成所有子图的 NMS 处理逻辑，去除冗余框。已完成
 - [x] **TensorRT8支持**：完成使用 **TensorRT8** 和 **TensorRT10** API
+- [ ] **Python支持**：使用 **Pybind11** 封装，使用 **Pyton** 调用
 - [ ] **更多模型支持**：添加对其他 YOLO 模型版本的支持。目前支持 **YOLOv11/YOLOv8**
 
