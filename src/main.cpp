@@ -1,6 +1,7 @@
 #include "model/yolov11.hpp"
 #include "common/timer.hpp"
 #include "common/image.hpp"
+#include "common/position.hpp"
 
 std::tuple<uint8_t, uint8_t, uint8_t> hsv2bgr(float h, float s, float v) 
 {
