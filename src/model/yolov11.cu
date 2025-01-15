@@ -4,6 +4,7 @@
 #include "slice/slice.hpp"
 #include "model/affine.hpp"
 #include "common/check.hpp"
+
 #ifdef TRT10
 #include "common/tensorrt.hpp"
 namespace TensorRT = TensorRT10;
@@ -294,7 +295,6 @@ public:
             preprocess(i, affine_matrix, stream);
 
         float *bbox_output_device = bbox_predict_.gpu();
-        std::vector<void *> bindings{input_buffer_.gpu(), bbox_output_device};
         #ifdef TRT10
         if (!trt_->forward(std::unordered_map<std::string, const void *>{
                 { "images", input_buffer_.gpu() }, 
@@ -305,6 +305,7 @@ public:
             return {};
         }
         #else
+        std::vector<void *> bindings{input_buffer_.gpu(), bbox_output_device};
         if (!trt_->forward(bindings, stream)) 
         {
             printf("Failed to tensorRT forward.");

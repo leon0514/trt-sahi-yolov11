@@ -17,6 +17,26 @@
 ## 注意事项
 1. 模型需要是动态batch的
 2. 如果模型切割后的数量大于batch的最大数量会导致无法推理
+3. **TensorRT 10**在执行推理的时候需要指定输入和输出的名称，名称可以在netron中查看
+   ```C++
+   #ifdef TRT10
+   if (!trt_->forward(std::unordered_map<std::string, const void *>{
+            { "images", input_buffer_.gpu() }, 
+            { "output0", bbox_predict_.gpu() }
+      }, stream_))
+   {
+      printf("Failed to tensorRT forward.");
+      return {};
+   }
+   #else
+   std::vector<void *> bindings{input_buffer_.gpu(), bbox_output_device};
+   if (!trt_->forward(bindings, stream)) 
+   {
+      printf("Failed to tensorRT forward.");
+      return {};
+   }
+   #endif
+   ```
 
 ## 使用
 ```C++
