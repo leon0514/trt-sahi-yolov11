@@ -53,9 +53,7 @@ static std::tuple<int, int, int> getFontSize(const std::string& text)
     return std::make_tuple(textSize.width, textSize.height, baseline);
 }
 
-void slicedInfer()
-{
-   static const char *cocolabels[] = {"person",        "bicycle",      "car",
+static const char *cocolabels[] = {"person",        "bicycle",      "car",
                                    "motorcycle",    "airplane",     "bus",
                                    "train",         "truck",        "boat",
                                    "traffic light", "fire hydrant", "stop sign",
@@ -83,8 +81,9 @@ void slicedInfer()
                                    "vase",          "scissors",     "teddy bear",
                                    "hair drier",    "toothbrush"};
 
+void slicedInfer()
+{
     cv::Mat image = cv::imread("inference/persons.jpg");
-    // cv::Mat image = cv::imread("6.jpg");
     auto yolo = yolov11::load("yolov8n.transd.engine");
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image));
@@ -113,36 +112,7 @@ void slicedInfer()
 
 void noSlicedInfer()
 {
-   static const char *cocolabels[] = {"person",        "bicycle",      "car",
-                                   "motorcycle",    "airplane",     "bus",
-                                   "train",         "truck",        "boat",
-                                   "traffic light", "fire hydrant", "stop sign",
-                                   "parking meter", "bench",        "bird",
-                                   "cat",           "dog",          "horse",
-                                   "sheep",         "cow",          "elephant",
-                                   "bear",          "zebra",        "giraffe",
-                                   "backpack",      "umbrella",     "handbag",
-                                   "tie",           "suitcase",     "frisbee",
-                                   "skis",          "snowboard",    "sports ball",
-                                   "kite",          "baseball bat", "baseball glove",
-                                   "skateboard",    "surfboard",    "tennis racket",
-                                   "bottle",        "wine glass",   "cup",
-                                   "fork",          "knife",        "spoon",
-                                   "bowl",          "banana",       "apple",
-                                   "sandwich",      "orange",       "broccoli",
-                                   "carrot",        "hot dog",      "pizza",
-                                   "donut",         "cake",         "chair",
-                                   "couch",         "potted plant", "bed",
-                                   "dining table",  "toilet",       "tv",
-                                   "laptop",        "mouse",        "remote",
-                                   "keyboard",      "cell phone",   "microwave",
-                                   "oven",          "toaster",      "sink",
-                                   "refrigerator",  "book",         "clock",
-                                   "vase",          "scissors",     "teddy bear",
-                                   "hair drier",    "toothbrush"};
-
     cv::Mat image = cv::imread("inference/persons.jpg");
-    // cv::Mat image = cv::imread("6.jpg");
     auto yolo = yolov11::load("yolov8n.transd.engine");
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image), image.cols, image.rows, 0.0f, 0.0f);
