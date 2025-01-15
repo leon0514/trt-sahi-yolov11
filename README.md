@@ -82,8 +82,7 @@ Save result to Yolo-result.jpg, 39 objects
 目标检测模型识别到多个目标时，在图上显示文字可能会有重叠，导致类别置信度显示被遮挡。
 优化了目标文字显示，尽可能改善遮挡情况
 <div align="center">
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced_text.jpg?raw=true" width="45%"/>
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/no_sliced_text.jpg?raw=true" width="45%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced_text.jpg?raw=true" width="100%"/>
 </div>
 
 ## TODO
