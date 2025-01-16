@@ -15,7 +15,7 @@ namespace TensorRT = TensorRT8;
 
 #define GPU_BLOCK_THREADS 512
 
-namespace yolov11
+namespace yolov5
 {
 
 static const int NUM_BOX_ELEMENT = 8;  // left, top, right, bottom, confidence, class, keepflag, row_index(output)
@@ -36,7 +36,7 @@ static __host__ __device__ void affine_project(float *matrix, float x, float y, 
     *oy = matrix[3] * x + matrix[4] * y + matrix[5];
 }
 
-static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_classes,
+static __global__ void decode_kernel_v5(float *predict, int num_bboxes, int num_classes,
                                               int output_cdim, float confidence_threshold,
                                               float *invert_affine_matrix, float *parray, int *box_count,
                                               int MAX_IMAGE_BOXES, int start_x, int start_y) 
@@ -45,7 +45,11 @@ static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_
     if (position >= num_bboxes) return;
 
     float *pitem = predict + output_cdim * position;
-    float *class_confidence = pitem + 4;
+    float objectness = pitem[4];
+    if (objectness < confidence_threshold) return;
+
+    float *class_confidence = pitem + 5;
+    
     float confidence = *class_confidence++;
     int label = 0;
     for (int i = 1; i < num_classes; ++i, ++class_confidence) 
@@ -56,6 +60,7 @@ static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_
             label = i;
         }
     }
+    confidence *= objectness;
     if (confidence < confidence_threshold) return;
 
     int index = atomicAdd(box_count, 1);
@@ -139,7 +144,7 @@ static void decode_kernel_invoker(float *predict, int num_bboxes, int num_classe
     auto grid = grid_dims(num_bboxes);
     auto block = block_dims(num_bboxes);
 
-    checkKernel(decode_kernel_v8<<<grid, block, 0, stream>>>(
+    checkKernel(decode_kernel_v5<<<grid, block, 0, stream>>>(
             predict, num_bboxes, num_classes, output_cdim, confidence_threshold, invert_affine_matrix,
             parray, box_count, MAX_IMAGE_BOXES, start_x, start_y));
 
@@ -155,7 +160,7 @@ static void fast_nms_kernel_invoker(float *parray, int* box_count, int MAX_IMAGE
     checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, MAX_IMAGE_BOXES, nms_threshold));
 }
 
-class Yolov11ModelImpl : public Infer 
+class Yolov5ModelImpl : public Infer 
 {
 public:
     // for sahi crop image
@@ -363,7 +368,7 @@ public:
 Infer *loadraw(const std::string &engine_file, float confidence_threshold,
                float nms_threshold) 
 {
-    Yolov11ModelImpl *impl = new Yolov11ModelImpl();
+    Yolov5ModelImpl *impl = new Yolov5ModelImpl();
     if (!impl->load(engine_file, confidence_threshold, nms_threshold)) 
     {
         delete impl;
@@ -377,7 +382,7 @@ std::shared_ptr<Infer> load(const std::string &engine_file, int gpu_id, float co
                float nms_threshold) 
 {
     checkRuntime(cudaSetDevice(gpu_id));
-    return std::shared_ptr<Yolov11ModelImpl>((Yolov11ModelImpl *)loadraw(engine_file, confidence_threshold, nms_threshold));
+    return std::shared_ptr<Yolov5ModelImpl>((Yolov5ModelImpl *)loadraw(engine_file, confidence_threshold, nms_threshold));
 }
 
 }
