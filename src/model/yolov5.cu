@@ -183,7 +183,7 @@ public:
 
     int num_classes_ = 0;
 
-    virtual ~Yolov11ModelImpl() = default;
+    virtual ~Yolov5ModelImpl() = default;
 
     void adjust_memory(int batch_size) 
     {
@@ -244,7 +244,7 @@ public:
         isdynamic_model_ = trt_->has_dynamic_dim();
 
         normalize_ = affine::Norm::alpha_beta(1 / 255.0f, 0.0f, affine::ChannelType::SwapRB);
-        num_classes_ = bbox_head_dims_[2] - 4;
+        num_classes_ = bbox_head_dims_[2] - 5;
         return true;
     }
 
