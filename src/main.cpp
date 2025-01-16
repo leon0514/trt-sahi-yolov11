@@ -91,7 +91,7 @@ void slicedInfer()
     PositionManager<int> pm(getFontSize);
     for (auto &obj : objs) 
     {
-        // obj.dump();
+        // std::cout << obj << std::endl;
         uint8_t b, g, r;
         std::tie(b, g, r) = random_color(obj.class_label);
         cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom),

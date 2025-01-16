@@ -20,9 +20,17 @@ struct Box
             bottom(bottom),
             confidence(confidence),
             class_label(class_label) {}
-    void dump()
+    friend std::ostream& operator<<(std::ostream& os, const Box& box)
     {
-        std::cout << "left : " << left << ", top : " << top << " , right : " << right << ", bottom : " << bottom << std::endl;
+        os << std::fixed << std::setprecision(2)  // 设置浮点数精度
+           << "Box:\n"
+           << "  Left:      " << std::setw(6) << box.left << "\n"
+           << "  Top:       " << std::setw(6) << box.top << "\n"
+           << "  Right:     " << std::setw(6) << box.right << "\n"
+           << "  Bottom:    " << std::setw(6) << box.bottom << "\n"
+           << "  Confidence: " << std::setw(6) << box.confidence << "\n"
+           << "  Class Label: " << box.class_label;
+        return os;
     }
 };
 

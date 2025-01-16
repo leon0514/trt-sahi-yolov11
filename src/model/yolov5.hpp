@@ -1,5 +1,5 @@
-#ifndef YOLOV11_HPP__
-#define YOLOV11_HPP__
+#ifndef YOLOV5_HPP__
+#define YOLOV5_HPP__
 #include <vector>
 #include "common/memory.hpp"
 #include "common/image.hpp"
