@@ -39,7 +39,7 @@ static __host__ __device__ void affine_project(float *matrix, float x, float y, 
 static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_classes,
                                               int output_cdim, float confidence_threshold,
                                               float *invert_affine_matrix, float *parray, int *box_count,
-                                              int MAX_IMAGE_BOXES, int start_x, int start_y) 
+                                              int max_image_boxes, int start_x, int start_y) 
 {
     int position = blockDim.x * blockIdx.x + threadIdx.x;
     if (position >= num_bboxes) return;
@@ -59,7 +59,7 @@ static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_
     if (confidence < confidence_threshold) return;
 
     int index = atomicAdd(box_count, 1);
-    if (index >= MAX_IMAGE_BOXES) return;
+    if (index >= max_image_boxes) return;
 
     float cx = *pitem++;
     float cy = *pitem++;
@@ -101,11 +101,11 @@ static __device__ float box_iou(float aleft, float atop, float aright, float abo
 }
 
 
-static __global__ void fast_nms_kernel(float *bboxes, int* box_count, int MAX_IMAGE_BOXES, float threshold) 
+static __global__ void fast_nms_kernel(float *bboxes, int* box_count, int max_image_boxes, float threshold) 
 {
     int position = (blockDim.x * blockIdx.x + threadIdx.x);
     // int count = min((int)*box_count, MAX_IMAGE_BOXES);
-    int count = MAX_IMAGE_BOXES;
+    int count = max_image_boxes;
     if (position >= count) return;
 
     // left, top, right, bottom, confidence, class, keepflag
@@ -133,7 +133,7 @@ static __global__ void fast_nms_kernel(float *bboxes, int* box_count, int MAX_IM
 
 static void decode_kernel_invoker(float *predict, int num_bboxes, int num_classes, int output_cdim,
                                   float confidence_threshold, float nms_threshold,
-                                  float *invert_affine_matrix, float *parray, int* box_count, int MAX_IMAGE_BOXES,
+                                  float *invert_affine_matrix, float *parray, int* box_count, int max_image_boxes,
                                   int start_x, int start_y, cudaStream_t stream) 
 {
     auto grid = grid_dims(num_bboxes);
@@ -141,18 +141,18 @@ static void decode_kernel_invoker(float *predict, int num_bboxes, int num_classe
 
     checkKernel(decode_kernel_v8<<<grid, block, 0, stream>>>(
             predict, num_bboxes, num_classes, output_cdim, confidence_threshold, invert_affine_matrix,
-            parray, box_count, MAX_IMAGE_BOXES, start_x, start_y));
+            parray, box_count, max_image_boxes, start_x, start_y));
 
-    // grid = grid_dims(MAX_IMAGE_BOXES);
-    // block = block_dims(MAX_IMAGE_BOXES);
-    // checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, MAX_IMAGE_BOXES, nms_threshold));
+    // grid = grid_dims(max_image_boxes);
+    // block = block_dims(max_image_boxes);
+    // checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, max_image_boxes, nms_threshold));
 }
 
-static void fast_nms_kernel_invoker(float *parray, int* box_count, int MAX_IMAGE_BOXES, float nms_threshold, cudaStream_t stream)
+static void fast_nms_kernel_invoker(float *parray, int* box_count, int max_image_boxes, float nms_threshold, cudaStream_t stream)
 {
-    auto grid = grid_dims(MAX_IMAGE_BOXES);
-    auto block = block_dims(MAX_IMAGE_BOXES);
-    checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, MAX_IMAGE_BOXES, nms_threshold));
+    auto grid = grid_dims(max_image_boxes);
+    auto block = block_dims(max_image_boxes);
+    checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, max_image_boxes, nms_threshold));
 }
 
 class Yolov11ModelImpl : public Infer 
