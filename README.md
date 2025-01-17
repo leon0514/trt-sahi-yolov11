@@ -114,7 +114,7 @@ printf("objs size : %d\n", objs.size());
 | RTX 3090 | YOLOv5s | 12      | 100     | 682.81891 ms |
 | RTX 3090 | YOLOv5s | 1       | 100     | 133.62320 ms |
 
-## TensoRT8 API支持
+## TensorRT8 API支持
 在Makefile中通过 **TRT_VERSION** 来控制编译哪个版本的 **TensorRT** 封装文件
 
 ## 优化文字显示
