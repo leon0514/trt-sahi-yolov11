@@ -401,18 +401,18 @@ public:
             {
                 decode_kernel_invoker_v5(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
                                     bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
-                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, start_x, start_y, stream_);
+                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
             }
             else if (yolo_type_ == YoloType::YOLOV8 || yolo_type_ == YoloType::YOLOV11)
             {
                 decode_kernel_invoker_v8(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
                                     bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
-                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, start_x, start_y, stream_);
+                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
             }
             
         }
         float *boxarray_device =  output_boxarray_.gpu();
-        fast_nms_kernel_invoker(boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, nms_threshold_, stream_);
+        fast_nms_kernel_invoker(boxarray_device, box_count, MAX_IMAGE_BOXES, nms_threshold_, stream_);
         checkRuntime(cudaMemcpyAsync(output_boxarray_.cpu(), output_boxarray_.gpu(),
                                     output_boxarray_.gpu_bytes(), cudaMemcpyDeviceToHost, stream_));
         checkRuntime(cudaMemcpyAsync(box_count_.cpu(), box_count_.gpu(),
