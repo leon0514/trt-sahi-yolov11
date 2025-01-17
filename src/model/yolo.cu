@@ -62,7 +62,7 @@ static __global__ void decode_kernel_v5(float *predict, int num_bboxes, int num_
     }
     confidence *= objectness;
     if (confidence < confidence_threshold) return;
-
+    
     int index = atomicAdd(box_count, 1);
     if (index >= max_image_boxes) return;
 
@@ -391,8 +391,9 @@ public:
         {
             int start_x = slice_->slice_position_[ib*2];
             int start_y = slice_->slice_position_[ib*2+1];
-            float *boxarray_device =
-                output_boxarray_.gpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
+            // float *boxarray_device =
+            //     output_boxarray_.gpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
+            float *boxarray_device = output_boxarray_.gpu();
             float *affine_matrix_device = affine_matrix_.gpu();
             float *image_based_bbox_output =
                 bbox_output_device + ib * (bbox_head_dims_[1] * bbox_head_dims_[2]);
@@ -400,13 +401,13 @@ public:
             {
                 decode_kernel_invoker_v5(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
                                     bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
-                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, start_x, start_y, stream_);
             }
             else if (yolo_type_ == YoloType::YOLOV8 || yolo_type_ == YoloType::YOLOV11)
             {
                 decode_kernel_invoker_v8(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
                                     bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
-                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, start_x, start_y, stream_);
             }
             
         }
