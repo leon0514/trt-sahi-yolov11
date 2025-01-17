@@ -41,32 +41,10 @@
 ## 使用
 ```C++
 cv::Mat image = cv::imread("inference/persons.jpg");
-// cv::Mat image = cv::imread("6.jpg");
-auto yolo = yolov11::load("yolov8n.transd.engine");
+auto yolo = yolo::load("helmetv5.engine", yolo::YoloType::YOLOV5);
 if (yolo == nullptr) return;
 auto objs = yolo->forward(tensor::cvimg(image));
 printf("objs size : %d\n", objs.size());
-// OUTPUT
-/*
-------------------------------------------------------
-TensorRT-Engine 🌱 is Dynamic Shape model
-Inputs: 1
-	0.images : {-1 x 3 x 640 x 640} [float32]
-Outputs: 1
-	0.output0 : {-1 x 8400 x 84} [float32]
-------------------------------------------------------
-------------------------------------------------------
-CUDA SAHI CROP IMAGE ✂️ 
-Slice width                : 784
-Slice Height               : 1068
-Overlap width  ratio       : 0.800000
-Overlap height ratio       : 0.800000
-Number of horizontal cuts  : 6
-Number of vertical cuts    : 1
-------------------------------------------------------
-objs size : 39
-Save result to Yolo-result.jpg, 39 objects
-*/
 ```
 
 ## 对比
@@ -86,9 +64,26 @@ Save result to Yolo-result.jpg, 39 objects
    <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced_text.jpg?raw=true" width="100%"/>
 </div>
 
+## 添加Python支持
+使用pybind11封装程序
+### 使用
+```python
+import trtsahiyolo
+from trtsahiyolo import YoloType as YoloType
+import cv2
+
+instance = trtsahiyolo.TrtSahiYolo("phone.engine", YoloType.YOLOV5, 0)
+
+frame = cv2.imread("test.jpg")
+
+result = instance.autoSliceForward(frame)
+
+print(result)
+```
+
 ## TODO
 - [x] **NMS 实现**：完成所有子图的 NMS 处理逻辑，去除冗余框。已完成
 - [x] **TensorRT8支持**：完成使用 **TensorRT8** 和 **TensorRT10** API
-- [ ] **Python支持**：使用 **Pybind11** 封装，使用 **Pyton** 调用
+- [x] **Python支持**：使用 **Pybind11** 封装，使用 **Pyton** 调用
 - [ ] **更多模型支持**：添加对其他 YOLO 模型版本的支持。目前支持 **YOLOv11/YOLOv8/YOLOv5**
 
