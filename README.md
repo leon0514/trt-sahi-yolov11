@@ -96,12 +96,26 @@ auto objs = yolo->forward(tensor::cvimg(image));
 printf("objs size : %d\n", objs.size());
 ```
 
-## 对比
+## 结果对比
 <div align="center">
    <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced.jpg?raw=true" width="45%"/>
    <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/no_sliced.jpg?raw=true" width="45%"/>
 </div>
 
+## 速度对比
+| 显卡   | 模型   | 切割数量 | 运行次数 | 时间       |
+|--------|--------|----------|----------|------------|
+| RTX 3090 | YOLOv8n | 6       | 100     | 353.99503 ms |
+| RTX 3090 | YOLOv8n | 1       | 100     | 115.26842 ms |
+| RTX 3090 | YOLOv8n | 12      | 100     | 620.60980 ms |
+| RTX 3090 | YOLOv8n | 1       | 100     | 116.69206 ms |
+| RTX 3090 | YOLOv5s | 6       | 100     | 401.84650 ms |
+| RTX 3090 | YOLOv5s | 1       | 100     | 133.09238 ms |
+| RTX 3090 | YOLOv5s | 12      | 100     | 682.81891 ms |
+| RTX 3090 | YOLOv5s | 1       | 100     | 133.62320 ms |
+
+[⏰ timer] : 682.81891 ms
+[⏰ timer] : 133.62320 ms
 ## TensoRT8 API支持
 在Makefile中通过 **TRT_VERSION** 来控制编译哪个版本的 **TensorRT** 封装文件
 
