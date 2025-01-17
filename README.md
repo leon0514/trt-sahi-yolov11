@@ -66,6 +66,18 @@ printf("objs size : %d\n", objs.size());
 
 ## 添加Python支持
 使用pybind11封装程序
+
+### 生成存根文件
+```shell
+
+pip install pybind11-stubgen
+
+cd workspace # workspace 是 trtsahiyolo.so所在目录
+export PYTHONPATH=`pwd`
+pybind11-stubgen trtsahiyolo.so -o ./
+
+```
+
 ### 使用
 ```python
 import trtsahiyolo
