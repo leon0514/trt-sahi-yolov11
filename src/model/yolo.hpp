@@ -1,10 +1,11 @@
-#ifndef YOLOV5_HPP__
-#define YOLOV5_HPP__
+#ifndef YOLOV11_HPP__
+#define YOLOV11_HPP__
 #include <vector>
 #include "common/memory.hpp"
 #include "common/image.hpp"
+#include <iomanip>
 
-namespace yolov5
+namespace yolo
 {
 
 struct Box 
@@ -34,6 +35,12 @@ struct Box
     }
 };
 
+enum class YoloType : int{
+    YOLOV5  = 0,
+    YOLOV8  = 1,
+    YOLOV11 = 2
+};
+
 using BoxArray = std::vector<Box>;
 
 
@@ -44,7 +51,7 @@ public:
     virtual BoxArray forwards(void *stream = nullptr) = 0;
 };
 
-std::shared_ptr<Infer> load(const std::string &engine_file, int gpu_id = 0, float confidence_threshold=0.5f, float nms_threshold=0.45f);
+std::shared_ptr<Infer> load(const std::string &engine_file, YoloType yolo_type, int gpu_id = 0, float confidence_threshold=0.5f, float nms_threshold=0.45f);
 
 }
 

@@ -1,4 +1,4 @@
-#include "model/yolov11.hpp"
+#include "model/yolo.hpp"
 #include "common/timer.hpp"
 #include "common/image.hpp"
 #include "common/position.hpp"
@@ -84,7 +84,7 @@ static const char *cocolabels[] = {"person",        "bicycle",      "car",
 void v11SlicedInfer()
 {
     cv::Mat image = cv::imread("inference/persons.jpg");
-    auto yolo = yolov11::load("yolov8n.transd.engine");
+    auto yolo = yolo::load("yolov8n.transd.engine", yolo::YoloType::YOLOV11);
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image));
     printf("objs size : %d\n", objs.size());
@@ -122,7 +122,83 @@ void v11SlicedInfer()
 void v11NoSlicedInfer()
 {
     cv::Mat image = cv::imread("inference/persons.jpg");
-    auto yolo = yolov11::load("yolov8n.transd.engine");
+    auto yolo = yolo::load("yolov8n.transd.engine", yolo::YoloType::YOLOV11);
+    if (yolo == nullptr) return;
+    auto objs = yolo->forward(tensor::cvimg(image), image.cols, image.rows, 0.0f, 0.0f);
+    printf("objs size : %d\n", objs.size());
+    PositionManager<int> pm(getFontSize);
+    for (auto &obj : objs) 
+    {
+        // obj.dump();
+        uint8_t b, g, r;
+        std::tie(b, g, r) = random_color(obj.class_label);
+        cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom),
+                    cv::Scalar(b, g, r), 5);
+    }
+    for (auto &obj : objs) 
+    {
+        uint8_t b, g, r;
+        std::tie(b, g, r) = random_color(obj.class_label);        
+        auto name = cocolabels[obj.class_label];
+        auto caption = cv::format("%s %.2f", name, obj.confidence);
+        std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
+        int x, y;
+        std::tie(x, y) = pm.selectOptimalPosition(box, image.cols, image.rows, caption);
+        std::tuple<int, int, int, int> curPos = pm.getCurrentPosition();
+        int left, top, right, bottom;
+        std::tie(left, top, right, bottom) = curPos;
+        cv::rectangle(image, cv::Point(left, top),
+                    cv::Point(right, bottom), cv::Scalar(b, g, r), -1);
+        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
+        
+    }
+    printf("Save result to result/v11NoSlicedInfer.jpg, %d objects\n", (int)objs.size());
+    cv::imwrite("result/v11NoSlicedInfer.jpg", image);
+
+}
+
+void v5SlicedInfer()
+{
+    cv::Mat image = cv::imread("inference/persons.jpg");
+    auto yolo = yolo::load("helmetv5.engine", yolo::YoloType::YOLOV5);
+    if (yolo == nullptr) return;
+    auto objs = yolo->forward(tensor::cvimg(image));
+    printf("objs size : %d\n", objs.size());
+    PositionManager<int> pm(getFontSize);
+    for (auto &obj : objs) 
+    {
+        // std::cout << obj << std::endl;
+        uint8_t b, g, r;
+        std::tie(b, g, r) = random_color(obj.class_label);
+        cv::rectangle(image, cv::Point(obj.left, obj.top), cv::Point(obj.right, obj.bottom),
+                    cv::Scalar(b, g, r), 5);
+    }
+    for (auto &obj : objs) 
+    {
+        uint8_t b, g, r;
+        std::tie(b, g, r) = random_color(obj.class_label);
+        auto name = cocolabels[obj.class_label];
+        auto caption = cv::format("%s %.2f", name, obj.confidence);
+
+        std::tuple<int, int, int, int> box = std::make_tuple((int)obj.left, (int)obj.top, (int)obj.right, (int)obj.bottom);
+        int x, y;
+        std::tie(x, y) = pm.selectOptimalPosition(box, image.cols, image.rows, caption);
+        std::tuple<int, int, int, int> curPos = pm.getCurrentPosition();
+        int left, top, right, bottom;
+        std::tie(left, top, right, bottom) = curPos;
+        cv::rectangle(image, cv::Point(left, top),
+                    cv::Point(right, bottom), cv::Scalar(b, g, r), -1);
+        cv::putText(image, caption, cv::Point(x, y), 0, 1, cv::Scalar::all(0), 2, 16);
+    }
+    printf("Save result to result/v5SlicedInfer.jpg, %d objects\n", (int)objs.size());
+    cv::imwrite("result/v5SlicedInfer.jpg", image);
+
+}
+
+void v5NoSlicedInfer()
+{
+    cv::Mat image = cv::imread("inference/persons.jpg");
+    auto yolo = yolo::load("helmetv5.engine", yolo::YoloType::YOLOV5);
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image), image.cols, image.rows, 0.0f, 0.0f);
     printf("objs size : %d\n", objs.size());

@@ -1,4 +1,4 @@
-#include "model/yolov11.hpp"
+#include "model/yolo.hpp"
 #include <vector>
 #include <memory>
 #include "slice/slice.hpp"
@@ -15,11 +15,11 @@ namespace TensorRT = TensorRT8;
 
 #define GPU_BLOCK_THREADS 512
 
-namespace yolov11
+namespace yolo
 {
 
 static const int NUM_BOX_ELEMENT = 8;  // left, top, right, bottom, confidence, class, keepflag, row_index(output)
-static const int MAX_IMAGE_BOXES = 1024;
+static const int MAX_IMAGE_BOXES = 1024 * 4;
 
 static dim3 grid_dims(int numJobs){
   int numBlockThreads = numJobs < GPU_BLOCK_THREADS ? numJobs : GPU_BLOCK_THREADS;
@@ -34,6 +34,58 @@ static __host__ __device__ void affine_project(float *matrix, float x, float y, 
 {
     *ox = matrix[0] * x + matrix[1] * y + matrix[2];
     *oy = matrix[3] * x + matrix[4] * y + matrix[5];
+}
+
+static __global__ void decode_kernel_v5(float *predict, int num_bboxes, int num_classes,
+                                              int output_cdim, float confidence_threshold,
+                                              float *invert_affine_matrix, float *parray, int *box_count,
+                                              int max_image_boxes, int start_x, int start_y) 
+{
+    int position = blockDim.x * blockIdx.x + threadIdx.x;
+    if (position >= num_bboxes) return;
+
+    float *pitem = predict + output_cdim * position;
+    float objectness = pitem[4];
+    if (objectness < confidence_threshold) return;
+
+    float *class_confidence = pitem + 5;
+    
+    float confidence = *class_confidence++;
+    int label = 0;
+    for (int i = 1; i < num_classes; ++i, ++class_confidence) 
+    {
+        if (*class_confidence > confidence) 
+        {
+            confidence = *class_confidence;
+            label = i;
+        }
+    }
+    confidence *= objectness;
+    if (confidence < confidence_threshold) return;
+
+    int index = atomicAdd(box_count, 1);
+    if (index >= max_image_boxes) return;
+
+    float cx = *pitem++;
+    float cy = *pitem++;
+    float width = *pitem++;
+    float height = *pitem++;
+    float left = cx - width * 0.5f;
+    float top = cy - height * 0.5f;
+    float right = cx + width * 0.5f;
+    float bottom = cy + height * 0.5f;
+    affine_project(invert_affine_matrix, left, top, &left, &top);
+    affine_project(invert_affine_matrix, right, bottom, &right, &bottom);
+
+    float *pout_item = parray + index * NUM_BOX_ELEMENT;
+    *pout_item++ = left + start_x;
+    *pout_item++ = top + start_y;
+    *pout_item++ = right + start_x;
+    *pout_item++ = bottom + start_y;
+    *pout_item++ = confidence;
+    *pout_item++ = label;
+    *pout_item++ = 1;  // 1 = keep, 0 = ignore
+    *pout_item++ = position;
 }
 
 static __global__ void decode_kernel_v8(float *predict, int num_bboxes, int num_classes,
@@ -131,7 +183,7 @@ static __global__ void fast_nms_kernel(float *bboxes, int* box_count, int max_im
     }
 }
 
-static void decode_kernel_invoker(float *predict, int num_bboxes, int num_classes, int output_cdim,
+static void decode_kernel_invoker_v8(float *predict, int num_bboxes, int num_classes, int output_cdim,
                                   float confidence_threshold, float nms_threshold,
                                   float *invert_affine_matrix, float *parray, int* box_count, int max_image_boxes,
                                   int start_x, int start_y, cudaStream_t stream) 
@@ -142,10 +194,20 @@ static void decode_kernel_invoker(float *predict, int num_bboxes, int num_classe
     checkKernel(decode_kernel_v8<<<grid, block, 0, stream>>>(
             predict, num_bboxes, num_classes, output_cdim, confidence_threshold, invert_affine_matrix,
             parray, box_count, max_image_boxes, start_x, start_y));
+}
 
-    // grid = grid_dims(max_image_boxes);
-    // block = block_dims(max_image_boxes);
-    // checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, max_image_boxes, nms_threshold));
+
+static void decode_kernel_invoker_v5(float *predict, int num_bboxes, int num_classes, int output_cdim,
+                                  float confidence_threshold, float nms_threshold,
+                                  float *invert_affine_matrix, float *parray, int* box_count, int max_image_boxes,
+                                  int start_x, int start_y, cudaStream_t stream) 
+{
+    auto grid = grid_dims(num_bboxes);
+    auto block = block_dims(num_bboxes);
+
+    checkKernel(decode_kernel_v5<<<grid, block, 0, stream>>>(
+            predict, num_bboxes, num_classes, output_cdim, confidence_threshold, invert_affine_matrix,
+            parray, box_count, max_image_boxes, start_x, start_y));
 }
 
 static void fast_nms_kernel_invoker(float *parray, int* box_count, int max_image_boxes, float nms_threshold, cudaStream_t stream)
@@ -155,9 +217,11 @@ static void fast_nms_kernel_invoker(float *parray, int* box_count, int max_image
     checkKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, box_count, max_image_boxes, nms_threshold));
 }
 
-class Yolov11ModelImpl : public Infer 
+class YoloModelImpl : public Infer 
 {
 public:
+    YoloType yolo_type_;
+
     // for sahi crop image
     std::shared_ptr<slice::SliceImage> slice_;
     std::shared_ptr<TensorRT::Engine> trt_;
@@ -178,7 +242,7 @@ public:
 
     int num_classes_ = 0;
 
-    virtual ~Yolov11ModelImpl() = default;
+    virtual ~YoloModelImpl() = default;
 
     void adjust_memory(int batch_size) 
     {
@@ -222,7 +286,7 @@ public:
                                                 normalize_, stream_);
     }
 
-    bool load(const std::string &engine_file, float confidence_threshold, float nms_threshold) 
+    bool load(const std::string &engine_file, YoloType yolo_type, float confidence_threshold, float nms_threshold) 
     {
         trt_ = TensorRT::load(engine_file);
         if (trt_ == nullptr) return false;
@@ -231,6 +295,7 @@ public:
 
         this->confidence_threshold_ = confidence_threshold;
         this->nms_threshold_ = nms_threshold;
+        this->yolo_type_ = yolo_type;
 
         auto input_dim = trt_->static_dims(0);
         bbox_head_dims_ = trt_->static_dims(1);
@@ -239,7 +304,14 @@ public:
         isdynamic_model_ = trt_->has_dynamic_dim();
 
         normalize_ = affine::Norm::alpha_beta(1 / 255.0f, 0.0f, affine::ChannelType::SwapRB);
-        num_classes_ = bbox_head_dims_[2] - 4;
+        if (this->yolo_type_ == YoloType::YOLOV8)
+        {
+            num_classes_ = bbox_head_dims_[2] - 4;
+        }
+        else
+        {
+            num_classes_ = bbox_head_dims_[2] - 5;
+        }
         return true;
     }
 
@@ -324,9 +396,19 @@ public:
             float *affine_matrix_device = affine_matrix_.gpu();
             float *image_based_bbox_output =
                 bbox_output_device + ib * (bbox_head_dims_[1] * bbox_head_dims_[2]);
-            decode_kernel_invoker(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
+            if (yolo_type_ == YoloType::YOLOV5)
+            {
+                decode_kernel_invoker_v5(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
                                     bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
                                     affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+            }
+            else if (yolo_type_ == YoloType::YOLOV8 || yolo_type_ == YoloType::YOLOV11)
+            {
+                decode_kernel_invoker_v8(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
+                                    bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
+                                    affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+            }
+            
         }
         float *boxarray_device =  output_boxarray_.gpu();
         fast_nms_kernel_invoker(boxarray_device, box_count, MAX_IMAGE_BOXES * num_image, nms_threshold_, stream_);
@@ -360,11 +442,11 @@ public:
 };
 
 
-Infer *loadraw(const std::string &engine_file, float confidence_threshold,
+Infer *loadraw(const std::string &engine_file, YoloType yolo_type, float confidence_threshold,
                float nms_threshold) 
 {
-    Yolov11ModelImpl *impl = new Yolov11ModelImpl();
-    if (!impl->load(engine_file, confidence_threshold, nms_threshold)) 
+    YoloModelImpl *impl = new YoloModelImpl();
+    if (!impl->load(engine_file, yolo_type, confidence_threshold, nms_threshold)) 
     {
         delete impl;
         impl = nullptr;
@@ -373,11 +455,10 @@ Infer *loadraw(const std::string &engine_file, float confidence_threshold,
     return impl;
 }
 
-std::shared_ptr<Infer> load(const std::string &engine_file, int gpu_id, float confidence_threshold,
-               float nms_threshold) 
+std::shared_ptr<Infer> load(const std::string &engine_file, YoloType yolo_type, int gpu_id, float confidence_threshold, float nms_threshold) 
 {
     checkRuntime(cudaSetDevice(gpu_id));
-    return std::shared_ptr<Yolov11ModelImpl>((Yolov11ModelImpl *)loadraw(engine_file, confidence_threshold, nms_threshold));
+    return std::shared_ptr<YoloModelImpl>((YoloModelImpl *)loadraw(engine_file, yolo_type, confidence_threshold, nms_threshold));
 }
 
 }

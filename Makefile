@@ -1,5 +1,5 @@
 cc        := g++
-name      := trtdepthpro.so
+name      := trtsahiyolo.so
 workdir   := workspace
 srcdir    := src
 objdir    := objs
