@@ -156,8 +156,7 @@ static __device__ float box_iou(float aleft, float atop, float aright, float abo
 static __global__ void fast_nms_kernel(float *bboxes, int* box_count, int max_image_boxes, float threshold) 
 {
     int position = (blockDim.x * blockIdx.x + threadIdx.x);
-    // int count = min((int)*box_count, MAX_IMAGE_BOXES);
-    int count = max_image_boxes;
+    int count = min((int)*box_count, MAX_IMAGE_BOXES);
     if (position >= count) return;
 
     // left, top, right, bottom, confidence, class, keepflag
@@ -421,20 +420,16 @@ public:
 
         BoxArray result;
         // int imemory = 0;
-        for (int ib = 0; ib < num_image; ++ib) 
+        float *parray = output_boxarray_.cpu();
+        int count = min(MAX_IMAGE_BOXES, *(box_count_.cpu()));
+        for (int i = 0; i < count; ++i) 
         {
-            
-            float *parray = output_boxarray_.cpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
-            int count = min(MAX_IMAGE_BOXES, *(box_count_.cpu()));
-            for (int i = 0; i < count; ++i) 
-            {
-                float *pbox = parray + i * NUM_BOX_ELEMENT;
-                int label = pbox[5];
-                int keepflag = pbox[6];
-                if (keepflag == 1) {
-                    Box result_object_box(pbox[0], pbox[1], pbox[2], pbox[3], pbox[4], label);
-                    result.emplace_back(result_object_box);
-                }
+            float *pbox = parray + i * NUM_BOX_ELEMENT;
+            int label = pbox[5];
+            int keepflag = pbox[6];
+            if (keepflag == 1) {
+                Box result_object_box(pbox[0], pbox[1], pbox[2], pbox[3], pbox[4], label);
+                result.emplace_back(result_object_box);
             }
         }
         return result;
