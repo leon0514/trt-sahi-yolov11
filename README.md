@@ -72,11 +72,19 @@ else if (yolo_type_ == YoloType::YOLOV8 || yolo_type_ == YoloType::YOLOV11)
 }
 ```
 - 单独使用一个变量`box_count`记录目前有效的框的数量
+- decode时增加每个子图对应原图的起始点坐标`(start_x, start_y)`, 映射回原图坐标
 ```C++
 int index = atomicAdd(box_count, 1);
 if (index >= max_image_boxes) return;
 ```
 - 上一张子图计算有效框的结束点是下一张子图的开始，通过`box_count`控制
+
+3. nms
+```c++
+float *boxarray_device =  output_boxarray_.gpu();
+fast_nms_kernel_invoker(boxarray_device, box_count, MAX_IMAGE_BOXES, nms_threshold_, stream_);
+```
+- 最后对所有子图合在一起的结果做nms，不是每个子图单独做nms。
 
 
 ## C++ 使用
