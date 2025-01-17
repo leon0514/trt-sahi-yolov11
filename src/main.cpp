@@ -9,10 +9,12 @@ void v5SlicedInfer();
 void v11NoSlicedInfer();
 void v11SlicedInfer();
 
+void v5_test_video();
 
 int main()
 {
-    v5NoSlicedInfer();
-    v5SlicedInfer();
+    v5_test_video();
+    // v5NoSlicedInfer();
+    // v5SlicedInfer();
     return 0;
 }

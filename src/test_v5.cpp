@@ -96,7 +96,7 @@ void v5SlicedInfer()
 void v5NoSlicedInfer()
 {
     cv::Mat image = cv::imread("inference/persons.jpg");
-    auto yolo = yolov5:load("helmetv5.engine");
+    auto yolo = yolov5::load("helmetv5.engine");
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image), image.cols, image.rows, 0.0f, 0.0f);
     printf("objs size : %d\n", objs.size());
