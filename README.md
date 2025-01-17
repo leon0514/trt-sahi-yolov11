@@ -38,8 +38,48 @@
    #endif
    ```
 
+## 关于 **sahi** 后处理说明
+与原始的多bacth后处理有一些改变。
+1. 内存显存申请 
+```diff
+- output_boxarray_.gpu(batch_size * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
+- output_boxarray_.cpu(batch_size * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
 
-## 使用
++ output_boxarray_.gpu(MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
++ output_boxarray_.cpu(MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
+```
+
+- 一整张图即使分为了多个batch，最多也只分配MAX_IMAGE_BOXES个框
+2. decode
+```diff
+- float *boxarray_device =
+-      output_boxarray_.gpu() + ib * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
++ float *boxarray_device = output_boxarray_.gpu();
+float *affine_matrix_device = affine_matrix_.gpu();
+float *image_based_bbox_output =
+      bbox_output_device + ib * (bbox_head_dims_[1] * bbox_head_dims_[2]);
+if (yolo_type_ == YoloType::YOLOV5)
+{
+      decode_kernel_invoker_v5(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
+                        bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
+                        affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+}
+else if (yolo_type_ == YoloType::YOLOV8 || yolo_type_ == YoloType::YOLOV11)
+{
+      decode_kernel_invoker_v8(image_based_bbox_output, bbox_head_dims_[1], num_classes_,
+                        bbox_head_dims_[2], confidence_threshold_, nms_threshold_,
+                        affine_matrix_device, boxarray_device, box_count, MAX_IMAGE_BOXES, start_x, start_y, stream_);
+}
+```
+- 单独使用一个变量`box_count`记录目前有效的框的数量
+```C++
+int index = atomicAdd(box_count, 1);
+if (index >= max_image_boxes) return;
+```
+- 上一张子图计算有效框的结束点是下一张子图的开始，通过`box_count`控制
+
+
+## C++ 使用
 ```C++
 cv::Mat image = cv::imread("inference/persons.jpg");
 auto yolo = yolo::load("helmetv5.engine", yolo::YoloType::YOLOV5);
@@ -79,7 +119,7 @@ pybind11-stubgen trtsahiyolo.so -o ./
 
 ```
 
-### 使用
+### Python 使用
 ```python
 import trtsahiyolo
 from trtsahiyolo import YoloType as YoloType

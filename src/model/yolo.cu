@@ -250,8 +250,8 @@ public:
         size_t input_numel = network_input_width_ * network_input_height_ * 3;
         input_buffer_.gpu(batch_size * input_numel);
         bbox_predict_.gpu(batch_size * bbox_head_dims_[1] * bbox_head_dims_[2]);
-        output_boxarray_.gpu(batch_size * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
-        output_boxarray_.cpu(batch_size * (MAX_IMAGE_BOXES * NUM_BOX_ELEMENT));
+        output_boxarray_.gpu(MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
+        output_boxarray_.cpu(MAX_IMAGE_BOXES * NUM_BOX_ELEMENT);
 
         affine_matrix_.gpu(6);
         affine_matrix_.cpu(6);
