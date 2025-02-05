@@ -1,8 +1,8 @@
-# TRT-SAHI-YOLOv11
+# TRT-SAHI-YOLO
 
 ## 项目简介
 
-**TRT-SAHI-YOLOv11** 是一个基于 **SAHI** 图像切割和 **TensorRT** 推理引擎的目标检测系统。该项目结合了高效的图像预处理与加速推理技术，旨在提供快速、精准的目标检测能力。通过切割大图像成多个小块进行推理，并应用非极大值抑制（NMS）来优化检测结果，最终实现对物体的精确识别。
+**TRT-SAHI-YOLO** 是一个基于 **SAHI** 图像切割和 **TensorRT** 推理引擎的目标检测系统。该项目结合了高效的图像预处理与加速推理技术，旨在提供快速、精准的目标检测能力。通过切割大图像成多个小块进行推理，并应用非极大值抑制（NMS）来优化检测结果，最终实现对物体的精确识别。
 
 ## 功能特性
 
@@ -98,19 +98,19 @@ printf("objs size : %d\n", objs.size());
 
 ## 结果对比
 <div align="center">
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced.jpg?raw=true" width="45%"/>
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/no_sliced.jpg?raw=true" width="45%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolo/blob/main/assert/sliced.jpg?raw=true" width="45%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolo/blob/main/assert/no_sliced.jpg?raw=true" width="45%"/>
 </div>
 
 ## 速度对比
 | 显卡   | 模型   | 切割数量 | 运行次数 | 时间       |
 |--------|--------|----------|----------|------------|
+| RTX 3090 | YOLOv8n | 1       | 100     | 116.69206 ms |
 | RTX 3090 | YOLOv8n | 6       | 100     | 353.99503 ms |
 | RTX 3090 | YOLOv8n | 12      | 100     | 620.60980 ms |
-| RTX 3090 | YOLOv8n | 1       | 100     | 116.69206 ms |
+| RTX 3090 | YOLOv5s | 1       | 100     | 133.62320 ms |
 | RTX 3090 | YOLOv5s | 6       | 100     | 401.84650 ms |
 | RTX 3090 | YOLOv5s | 12      | 100     | 682.81891 ms |
-| RTX 3090 | YOLOv5s | 1       | 100     | 133.62320 ms |
 
 ## TensorRT8 API支持
 在Makefile中通过 **TRT_VERSION** 来控制编译哪个版本的 **TensorRT** 封装文件
@@ -120,7 +120,7 @@ printf("objs size : %d\n", objs.size());
 优化了目标文字显示，尽可能改善遮挡情况    
 详细说明见 [目标检测可视化文字重叠](https://www.jianshu.com/p/a6e289df4b90)
 <div align="center">
-   <img src="https://github.com/leon0514/trt-sahi-yolov11/blob/main/assert/sliced_text.jpg?raw=true" width="100%"/>
+   <img src="https://github.com/leon0514/trt-sahi-yolo/blob/main/assert/sliced_text.jpg?raw=true" width="100%"/>
 </div>
 
 ## 添加Python支持
