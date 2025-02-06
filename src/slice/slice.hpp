@@ -16,6 +16,8 @@ public:
     tensor::Memory<unsigned char> input_image_;
     tensor::Memory<unsigned char> output_images_;
 
+    tensor::Memory<int> slice_start_point_;
+
     int slice_num_h_;
     int slice_num_v_;
 

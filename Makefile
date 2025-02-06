@@ -10,7 +10,7 @@ nvcc      := $(cuda_home)/bin/nvcc -ccbin=$(cc)
 
 
 project_include_path := src
-opencv_include_path  := /workspace/__install/opencv490/include/opencv4
+opencv_include_path  := /usr/include/opencv4/
 trt_include_path     := /usr/include/x86_64-linux-gnu/
 cuda_include_path    := $(cuda_home)/include
 ffmpeg_include_path  := 

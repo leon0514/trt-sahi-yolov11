@@ -3,104 +3,70 @@
 #include <cmath>
 
 static __global__ void slice_kernel(
-  const uint8_t*  image,
-  uint8_t*  outs,
+  const uchar3* __restrict__ image,
+  uchar3* __restrict__ outs,
   const int width,
   const int height,
   const int slice_width,
   const int slice_height,
   const int slice_num_h,
   const int slice_num_v,
-  const int overlap_width_pixel,
-  const int overlap_height_pixel)
+  const int* __restrict__ slice_start_point)
 {
-    const int out_size = 3 * slice_width * slice_height;
-    int dx = blockDim.x * blockIdx.x + threadIdx.x;
-    int dy = blockDim.y * blockIdx.y + threadIdx.y;
-    if (dx >= width || dy >= height || dx < 0 || dy < 0)
-    {
+    const int slice_idx = blockIdx.z;
+    // printf("%d\n", slice_idx);
+    const int start_x = slice_start_point[slice_idx * 2];
+    const int start_y = slice_start_point[slice_idx * 2 + 1];
+
+    // 当前像素在切片内的相对位置
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y = blockIdx.y * blockDim.y + threadIdx.y;
+    // printf("%d,%d\n", (sdx_end - sdx_start), (sdy_end - sdy_start));
+    if(x >= slice_width| y >= slice_height) 
         return;
-    }
-    int offset = dy * width + dx;
-    uint8_t b = image[3 * offset + 0];
-    uint8_t g = image[3 * offset + 1];
-    uint8_t r = image[3 * offset + 2];
 
+    const int dx = start_x + x;
+    const int dy = start_y + y;
 
-    // 定义外部的动态大小享内存，存储切片范围
-    extern __shared__ int slice_range[];
+    if(dx >= width || dy >= height) 
+        return;
 
-    int* slice_range_h = slice_range;
-    int* slice_range_v = slice_range + slice_num_h * 2;
+    // 读取像素
+    const int src_index = dy * width + dx;
+    const uchar3 pixel = image[src_index];
 
-    // 计算切片的起始和结束位置，并存储在共享内存中
-    if (threadIdx.x < slice_num_h) 
-    {
-        // 这里计算start的时候必须分两行，先计算start，再取0和start的最大值
-        int start = threadIdx.x * (slice_width - overlap_width_pixel);
-        start = max(start, 0);
-        int end = start + slice_width;
-        slice_range_h[threadIdx.x * 2] = start;
-        slice_range_h[threadIdx.x * 2 + 1] = end;
-        
-    }
-
-    if (threadIdx.y < slice_num_v) {
-        int start = threadIdx.y * (slice_height - overlap_height_pixel);
-        start = max(start, 0);
-        int end = start + slice_height;
-        slice_range_v[threadIdx.y * 2] = start;
-        slice_range_v[threadIdx.y * 2 + 1] = end;
-        
-    }
-    __syncthreads();
-
-    for (int i = 0; i < slice_num_h; i++)
-    {
-        int sdx_start = slice_range_h[i * 2];
-        int sdx_end   = slice_range_h[i * 2 + 1];
-
-        for (int j = 0; j < slice_num_v; j++)
-        {
-            int sdy_start = slice_range_v[j * 2];
-            int sdy_end = slice_range_v[j * 2 + 1];   
-            if (dx >= sdx_start && dx < sdx_end && dy >= sdy_start && dy < sdy_end)
-            {
-                int image_id = i * slice_num_v + j;
-                int sdx = dx - sdx_start;
-                int sdy = dy - sdy_start;
-                int soffset = sdy * slice_width + sdx;
-                outs[image_id * out_size + 3 * soffset + 0] = b;
-                outs[image_id * out_size + 3 * soffset + 1] = g;
-                outs[image_id * out_size + 3 * soffset + 2] = r;
-            }
-        }
-    }
+    // 写入切片
+    const int dst_index = slice_idx * slice_width * slice_height + y * slice_width + x;
+    outs[dst_index] = pixel;
 }
 
 static void slice_plane(const uint8_t* image,
-    uint8_t*  outs,
+    uint8_t* outs,
+    int* slice_start_point,
     const int width,
     const int height,
     const int slice_width,
     const int slice_height,
     const int slice_num_h,
     const int slice_num_v,
-    const int overlap_width_pixel,
-    const int overlap_height_pixel,
     void* stream=nullptr)
 {
+    int slice_total = slice_num_h * slice_num_v;
     cudaStream_t stream_ = (cudaStream_t)stream;
     dim3 block(32, 32);
-    dim3 grid((width + 31) / 32, (height + 31) / 32);
-
-    int shared_memory_size = sizeof(int) * (slice_num_h + slice_num_v) * 2;
-
-    slice_kernel<<<grid, block, shared_memory_size, stream_>>>(image, outs, 
-                                    width, height, 
-                                    slice_width, slice_height, 
-                                    slice_num_h, slice_num_v, 
-                                    overlap_width_pixel, overlap_height_pixel);
+    dim3 grid(
+        (slice_width + block.x - 1) / block.x,
+        (slice_height + block.y - 1) / block.y,
+        slice_total
+    );
+    slice_kernel<<<grid, block, 0, stream_>>>(
+        reinterpret_cast<const uchar3*>(image),
+        reinterpret_cast<uchar3*>(outs),
+        width, height, 
+        slice_width, slice_height, 
+        slice_num_h, slice_num_v, 
+        slice_start_point
+    );
 }
 
 
@@ -248,16 +214,16 @@ void SliceImage::slice(
 
     slice_num_h_ = calculateNumCuts(width, slice_width, overlap_width_ratio);
     slice_num_v_ = calculateNumCuts(height, slice_height, overlap_height_ratio);
-    printf("------------------------------------------------------\n"
-            "CUDA SAHI CROP IMAGE ✂️\n"
-            "Slice width                : %d\n"
-            "Slice Height               : %d\n"
-            "Overlap width  ratio       : %f\n"
-            "Overlap height ratio       : %f\n"
-            "Number of horizontal cuts  : %d\n"
-            "Number of vertical cuts    : %d\n"
-            "------------------------------------------------------\n", 
-            slice_width_, slice_height_, overlap_width_ratio, overlap_height_ratio, slice_num_h_, slice_num_v_);
+    // printf("------------------------------------------------------\n"
+    //         "CUDA SAHI CROP IMAGE ✂️\n"
+    //         "Slice width                : %d\n"
+    //         "Slice Height               : %d\n"
+    //         "Overlap width  ratio       : %f\n"
+    //         "Overlap height ratio       : %f\n"
+    //         "Number of horizontal cuts  : %d\n"
+    //         "Number of vertical cuts    : %d\n"
+    //         "------------------------------------------------------\n", 
+    //         slice_width_, slice_height_, overlap_width_ratio, overlap_height_ratio, slice_num_h_, slice_num_v_);
     // printf("%d,%d\n", slice_num_h_, slice_num_v_);
     int slice_num            = slice_num_h_ * slice_num_v_;
     int overlap_width_pixel  = slice_width  * overlap_width_ratio;
@@ -273,19 +239,15 @@ void SliceImage::slice(
 
     checkRuntime(cudaMemcpyAsync(input_image_.gpu(), image.bgrptr, size_image, cudaMemcpyHostToDevice, stream_));
     // checkRuntime(cudaStreamSynchronize(stream_));
+
     uint8_t* input_device = input_image_.gpu();
     uint8_t* output_device = output_images_.gpu();
 
-    slice_plane(
-        input_device, output_device, 
-        width, height, 
-        slice_width, slice_height, 
-        slice_num_h_, slice_num_v_, 
-        overlap_width_pixel, overlap_height_pixel, 
-        stream);
+    slice_start_point_.cpu(slice_num * 2);
+    slice_start_point_.gpu(slice_num * 2);
 
-    // checkRuntime(cudaStreamSynchronize(stream_));
-
+    int* slice_start_point_ptr = slice_start_point_.cpu();
+    
     for (int i = 0; i < slice_num_h_; i++)
     {
         int x = std::max(0, i * (slice_width - overlap_width_pixel));
@@ -293,8 +255,29 @@ void SliceImage::slice(
         {
             int y = std::max(0, j * (slice_height - overlap_height_pixel));
             int index = i * slice_num_v_ + j;
-            slice_position_[index*2]   = x;
-            slice_position_[index*2+1] = y;
+            slice_start_point_ptr[index*2]   = x;
+            slice_start_point_ptr[index*2+1] = y;
+        }
+    }
+    
+    checkRuntime(cudaMemcpyAsync(slice_start_point_.gpu(), slice_start_point_.cpu(), slice_num*2*sizeof(int), cudaMemcpyHostToDevice, stream_));
+    checkRuntime(cudaStreamSynchronize(stream_));
+    slice_plane(
+        input_device, output_device, slice_start_point_.gpu(),
+        width, height, 
+        slice_width, slice_height, 
+        slice_num_h_, slice_num_v_,
+        stream);
+
+    // checkRuntime(cudaStreamSynchronize(stream_));
+
+    for (int i = 0; i < slice_num_h_; i++)
+    {
+        for (int j = 0; j < slice_num_v_; j++)
+        {
+            int index = i * slice_num_v_ + j;
+            slice_position_[index*2]   = slice_start_point_ptr[index*2];
+            slice_position_[index*2+1] = slice_start_point_ptr[index*2+1];
 
             // cv::Mat image = cv::Mat::zeros(slice_height, slice_width, CV_8UC3);
             // uint8_t* output_img_data = image.ptr<uint8_t>();

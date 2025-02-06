@@ -36,6 +36,7 @@
 workspace/pro
 workspace/result/*.jpg
 workspace/*.jpg
+workspace/*.png
 !workspace/inference/*.jpg
 *.engine
 *.onnx
