@@ -214,22 +214,22 @@ void SliceImage::slice(
 
     slice_num_h_ = calculateNumCuts(width, slice_width, overlap_width_ratio);
     slice_num_v_ = calculateNumCuts(height, slice_height, overlap_height_ratio);
-    printf("------------------------------------------------------\n"
-        "CUDA SAHI CROP IMAGE ✂️\n"
-        "------------------------------------------------------\n"
-        "%-30s: %-10d\n"
-        "%-30s: %-10d\n"
-        "%-30s: %-10.2f\n"
-        "%-30s: %-10.2f\n"
-        "%-30s: %-10d\n"
-        "%-30s: %-10d\n"
-        "------------------------------------------------------\n", 
-        "Slice width", slice_width_,
-        "Slice height", slice_height_,
-        "Overlap width ratio", overlap_width_ratio,
-        "Overlap height ratio", overlap_height_ratio,
-        "Number of horizontal cuts", slice_num_h_,
-        "Number of vertical cuts", slice_num_v_);
+    // printf("------------------------------------------------------\n"
+    //     "CUDA SAHI CROP IMAGE ✂️\n"
+    //     "------------------------------------------------------\n"
+    //     "%-30s: %-10d\n"
+    //     "%-30s: %-10d\n"
+    //     "%-30s: %-10.2f\n"
+    //     "%-30s: %-10.2f\n"
+    //     "%-30s: %-10d\n"
+    //     "%-30s: %-10d\n"
+    //     "------------------------------------------------------\n", 
+    //     "Slice width", slice_width_,
+    //     "Slice height", slice_height_,
+    //     "Overlap width ratio", overlap_width_ratio,
+    //     "Overlap height ratio", overlap_height_ratio,
+    //     "Number of horizontal cuts", slice_num_h_,
+    //     "Number of vertical cuts", slice_num_v_);
     int slice_num            = slice_num_h_ * slice_num_v_;
     int overlap_width_pixel  = slice_width  * overlap_width_ratio;
     int overlap_height_pixel = slice_height * overlap_height_ratio;

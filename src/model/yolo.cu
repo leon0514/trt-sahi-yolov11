@@ -303,7 +303,7 @@ public:
         isdynamic_model_ = trt_->has_dynamic_dim();
 
         normalize_ = affine::Norm::alpha_beta(1 / 255.0f, 0.0f, affine::ChannelType::SwapRB);
-        if (this->yolo_type_ == YoloType::YOLOV8)
+        if (this->yolo_type_ == YoloType::YOLOV8 || this->yolo_type_ == YoloType::YOLOV11)
         {
             num_classes_ = bbox_head_dims_[2] - 4;
         }

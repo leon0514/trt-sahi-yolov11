@@ -124,9 +124,9 @@ public:
 
 class TrtSahiYolo{
 public:
-    TrtSahiYolo(std::string model_path, yolo::YoloType yolo_type, int gpu_id = 0)
+    TrtSahiYolo(std::string model_path, yolo::YoloType yolo_type, int gpu_id, float confidence_threshold, float nms_threshold)
     {
-        instance_ = yolo::load(model_path, yolo_type, gpu_id);
+        instance_ = yolo::load(model_path, yolo_type, gpu_id, confidence_threshold, nms_threshold);
     }
 
     yolo::BoxArray autoSliceForward(const cv::Mat& image)
@@ -178,7 +178,12 @@ PYBIND11_MODULE(trtsahiyolo, m){
         });
 
     py::class_<TrtSahiYolo>(m, "TrtSahiYolo")
-	.def(py::init<string, yolo::YoloType, int>(), py::arg("model_path"), py::arg("gpu_id"), py::arg("yolo_type"))
+	.def(py::init<string, yolo::YoloType, int, float, float>(), 
+        py::arg("model_path"), 
+        py::arg("yolo_type"),
+        py::arg("gpu_id"), 
+        py::arg("confidence_threshold"),
+        py::arg("nms_threshold"))
 	.def_property_readonly("valid", &TrtSahiYolo::valid)
 	.def("autoSliceForward", &TrtSahiYolo::autoSliceForward, py::arg("image"))
 	.def("manualSliceForward", &TrtSahiYolo::manualSliceForward, 

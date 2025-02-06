@@ -9,8 +9,8 @@ void SpeedTest();
 
 int main()
 {
-    // v11SlicedInfer();
+    v11SlicedInfer();
     // v5SlicedInfer();
-    SpeedTest();
+    // SpeedTest();
     return 0;
 }

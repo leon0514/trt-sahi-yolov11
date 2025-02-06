@@ -84,7 +84,7 @@ static const char *cocolabels[] = {"person",        "bicycle",      "car",
 void v11SlicedInfer()
 {
     cv::Mat image = cv::imread("inference/persons.jpg");
-    auto yolo = yolo::load("yolov8n.transd.engine", yolo::YoloType::YOLOV11);
+    auto yolo = yolo::load("yolov8n.transd.engine", yolo::YoloType::YOLOV8);
     if (yolo == nullptr) return;
     auto objs = yolo->forward(tensor::cvimg(image));
     printf("objs size : %d\n", objs.size());
