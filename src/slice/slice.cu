@@ -22,7 +22,7 @@ static __global__ void slice_kernel(
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
     // printf("%d,%d\n", (sdx_end - sdx_start), (sdy_end - sdy_start));
-    if(x >= slice_width| y >= slice_height) 
+    if(x >= slice_width || y >= slice_height) 
         return;
 
     const int dx = start_x + x;
