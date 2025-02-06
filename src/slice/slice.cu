@@ -235,7 +235,6 @@ void SliceImage::slice(
     input_image_.gpu(size_image);
     output_images_.gpu(slice_num * output_img_size);
     checkRuntime(cudaMemsetAsync(output_images_.gpu(), 114, output_images_.gpu_bytes(), stream_));
-    slice_position_.resize(slice_num * 2);
 
     checkRuntime(cudaMemcpyAsync(input_image_.gpu(), image.bgrptr, size_image, cudaMemcpyHostToDevice, stream_));
     // checkRuntime(cudaStreamSynchronize(stream_));
@@ -271,21 +270,21 @@ void SliceImage::slice(
 
     // checkRuntime(cudaStreamSynchronize(stream_));
 
-    for (int i = 0; i < slice_num_h_; i++)
-    {
-        for (int j = 0; j < slice_num_v_; j++)
-        {
-            int index = i * slice_num_v_ + j;
-            slice_position_[index*2]   = slice_start_point_ptr[index*2];
-            slice_position_[index*2+1] = slice_start_point_ptr[index*2+1];
+    // for (int i = 0; i < slice_num_h_; i++)
+    // {
+    //     for (int j = 0; j < slice_num_v_; j++)
+    //     {
+    //         int index = i * slice_num_v_ + j;
+    //         slice_position_[index*2]   = slice_start_point_ptr[index*2];
+    //         slice_position_[index*2+1] = slice_start_point_ptr[index*2+1];
 
-            // cv::Mat image = cv::Mat::zeros(slice_height, slice_width, CV_8UC3);
-            // uint8_t* output_img_data = image.ptr<uint8_t>();
-            // cudaMemcpyAsync(output_img_data, output_device+index*output_img_size, output_img_size*sizeof(uint8_t), cudaMemcpyDeviceToHost, stream_);
-            // checkRuntime(cudaStreamSynchronize(stream_));
-            // cv::imwrite(std::to_string(index) + ".png", image);
-        }
-    }
+    //         // cv::Mat image = cv::Mat::zeros(slice_height, slice_width, CV_8UC3);
+    //         // uint8_t* output_img_data = image.ptr<uint8_t>();
+    //         // cudaMemcpyAsync(output_img_data, output_device+index*output_img_size, output_img_size*sizeof(uint8_t), cudaMemcpyDeviceToHost, stream_);
+    //         // checkRuntime(cudaStreamSynchronize(stream_));
+    //         // cv::imwrite(std::to_string(index) + ".png", image);
+    //     }
+    // }
 }
 
 }

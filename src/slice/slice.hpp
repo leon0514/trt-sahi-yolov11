@@ -24,7 +24,7 @@ public:
     int slice_width_;
     int slice_height_;
 
-    std::vector<int> slice_position_;
+    // std::vector<int> slice_position_;
 
 public:
     void slice(
