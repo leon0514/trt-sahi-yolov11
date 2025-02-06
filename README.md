@@ -111,6 +111,7 @@ printf("objs size : %d\n", objs.size());
 | RTX 3090 | YOLOv5s | 1       | 100     | 133.62320 ms |
 | RTX 3090 | YOLOv5s | 6       | 100     | 401.84650 ms |
 | RTX 3090 | YOLOv5s | 12      | 100     | 682.81891 ms |
+
 对sahi的cuda实现做了优化，速度应该会更快一点，但是没有之前相同的环境测试了。
 
 ## TensorRT8 API支持
