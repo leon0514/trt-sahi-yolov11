@@ -35,7 +35,7 @@
 
 workspace/pro
 workspace/test.py
-workspace/phone
+workspace/phones
 workspace/result/*.jpg
 workspace/*.jpg
 workspace/*.png

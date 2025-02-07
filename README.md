@@ -37,6 +37,7 @@
    }
    #endif
    ```
+4. yolov8和yolov11模型导出的onnx输出shape是 1x84x8400 ，需要使用v8trans.py将输出转换为1x8400x84 
 
 ## 关于 **sahi** 后处理说明
 与原始的多bacth后处理有一些改变。
