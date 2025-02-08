@@ -146,11 +146,11 @@ import trtsahiyolo
 from trtsahiyolo import YoloType as YoloType
 import cv2
 
-instance = trtsahiyolo.TrtSahiYolo("phone.engine", YoloType.YOLOV5, 0)
+model = trtsahiyolo.TrtSahiYolo("yolo11s.engine", YoloType.YOLOV11, 0, 0.3, 0.45)
 
 frame = cv2.imread("test.jpg")
 
-result = instance.autoSliceForward(frame)
+result = model.autoSliceForward(frame)
 
 print(result)
 ```
