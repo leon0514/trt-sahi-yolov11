@@ -33,12 +33,9 @@
 
 *.mp4
 
-workspace/pro
-workspace/test.py
-workspace/phones
-workspace/result/*.jpg
-workspace/*.jpg
-workspace/*.png
+workspace/
+!workspace/*.py
+!workspace/*.pyi
 !workspace/inference/*.jpg
 *.engine
 *.onnx
